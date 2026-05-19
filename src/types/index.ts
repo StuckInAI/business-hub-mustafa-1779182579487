@@ -1,45 +1,10 @@
 export type UserRole = 'admin' | 'hiring_manager' | 'recruiter' | 'interviewer';
 
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  department?: string;
-  avatar?: string;
-};
-
-export type JobStatus = 'draft' | 'open' | 'paused' | 'closed';
+export type JobStatus = 'draft' | 'active' | 'paused' | 'closed';
 export type JobType = 'full_time' | 'part_time' | 'contract' | 'internship';
-export type ExperienceLevel = 'entry' | 'mid' | 'senior' | 'lead' | 'executive';
+export type JobDepartment = 'engineering' | 'design' | 'product' | 'marketing' | 'sales' | 'hr' | 'finance' | 'operations' | 'other';
 
-export type Salary = {
-  min: number;
-  max: number;
-  currency: string;
-};
-
-export type Job = {
-  id: string;
-  title: string;
-  department: string;
-  location: string;
-  type: JobType;
-  status: JobStatus;
-  experienceLevel: ExperienceLevel;
-  description: string;
-  requirements: string[];
-  responsibilities: string[];
-  salary?: Salary;
-  closingDate?: string;
-  hiringManagerId: string;
-  recruiterId?: string;
-  createdAt: string;
-  updatedAt: string;
-  applicationCount?: number;
-};
-
-export type ApplicationStatus =
+export type CandidateStatus =
   | 'new'
   | 'screening'
   | 'interview'
@@ -48,104 +13,134 @@ export type ApplicationStatus =
   | 'rejected'
   | 'withdrawn';
 
-export type Candidate = {
+export type InterviewType = 'phone' | 'video' | 'onsite' | 'technical' | 'behavioral';
+export type InterviewStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+
+export type RequisitionStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'filled' | 'cancelled';
+export type RequisitionPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type ReferralStatus = 'pending' | 'reviewing' | 'hired' | 'rejected';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+}
+
+export interface Job {
+  id: string;
+  title: string;
+  department: JobDepartment;
+  location: string;
+  type: JobType;
+  status: JobStatus;
+  description: string;
+  requirements: string[];
+  salary?: { min: number; max: number; currency: string };
+  createdAt: string;
+  updatedAt: string;
+  hiringManagerId: string;
+  recruiterId?: string;
+  applicantCount: number;
+}
+
+export interface Candidate {
   id: string;
   name: string;
   email: string;
   phone?: string;
-  location?: string;
-  currentTitle?: string;
-  currentCompany?: string;
-  experience?: number;
-  skills: string[];
-  resumeUrl?: string;
-  linkedinUrl?: string;
-  portfolioUrl?: string;
-  source: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type Application = {
-  id: string;
   jobId: string;
-  candidateId: string;
-  status: ApplicationStatus;
-  stage: string;
+  jobTitle: string;
+  candidateStatus: CandidateStatus;
+  stage: CandidateStatus;
+  resumeUrl?: string;
+  coverLetter?: string;
   appliedAt: string;
   updatedAt: string;
-  notes?: string;
+  tags: string[];
   rating?: number;
-  recruiterId?: string;
-};
+  notes: Note[];
+  source: string;
+}
 
-export type InterviewType = 'phone' | 'video' | 'onsite' | 'technical' | 'behavioral';
-export type InterviewStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
-
-export type Interview = {
+export interface Note {
   id: string;
-  applicationId: string;
-  jobId: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+}
+
+export interface Interview {
+  id: string;
   candidateId: string;
+  candidateName: string;
+  jobId: string;
+  jobTitle: string;
+  interviewerId: string;
+  interviewerName: string;
   type: InterviewType;
   status: InterviewStatus;
   scheduledAt: string;
   duration: number;
-  interviewerIds: string[];
+  location?: string;
+  notes?: string;
   feedback?: string;
   rating?: number;
-  notes?: string;
-  meetingLink?: string;
-  createdAt: string;
-};
+}
 
-export type RequisitionStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'fulfilled';
-export type RequisitionPriority = 'low' | 'medium' | 'high' | 'urgent';
-
-export type Requisition = {
+export interface Requisition {
   id: string;
   title: string;
-  department: string;
-  location: string;
-  type: JobType;
-  experienceLevel: ExperienceLevel;
+  department: JobDepartment;
+  requestedById: string;
+  requestedByName: string;
   status: RequisitionStatus;
   priority: RequisitionPriority;
-  requestedBy: string;
-  approvedBy?: string;
-  justification: string;
   headcount: number;
-  budgetMin?: number;
-  budgetMax?: number;
-  targetStartDate?: string;
+  justification: string;
   createdAt: string;
   updatedAt: string;
-  jobId?: string;
-};
+  approvedById?: string;
+  approvedByName?: string;
+  linkedJobId?: string;
+}
 
-export type ReferralStatus = 'pending' | 'reviewed' | 'hired' | 'rejected';
-
-export type Referral = {
+export interface Referral {
   id: string;
   referrerId: string;
+  referrerName: string;
   candidateName: string;
   candidateEmail: string;
   jobId: string;
+  jobTitle: string;
   status: ReferralStatus;
-  notes?: string;
   createdAt: string;
-};
+  notes?: string;
+}
 
-export type PipelineStage = {
-  id: string;
-  name: string;
-  order: number;
-  color: string;
-};
-
-export type AppSettings = {
-  companyName: string;
-  companyWebsite?: string;
-  defaultCurrency: string;
-  stages: PipelineStage[];
-};
+export interface StoreType {
+  jobs: Job[];
+  candidates: Candidate[];
+  interviews: Interview[];
+  requisitions: Requisition[];
+  referrals: Referral[];
+  currentUser: User;
+  addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'applicantCount'>) => void;
+  updateJob: (id: string, updates: Partial<Job>) => void;
+  deleteJob: (id: string) => void;
+  addCandidate: (candidate: Omit<Candidate, 'id' | 'appliedAt' | 'updatedAt' | 'notes'>) => void;
+  updateCandidate: (id: string, updates: Partial<Candidate>) => void;
+  deleteCandidate: (id: string) => void;
+  addInterview: (interview: Omit<Interview, 'id'>) => void;
+  updateInterview: (id: string, updates: Partial<Interview>) => void;
+  deleteInterview: (id: string) => void;
+  addRequisition: (req: Omit<Requisition, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateRequisition: (id: string, updates: Partial<Requisition>) => void;
+  addReferral: (ref: Omit<Referral, 'id' | 'createdAt'>) => void;
+  updateReferral: (id: string, updates: Partial<Referral>) => void;
+  switchRole: (role: UserRole) => void;
+  addNote: (candidateId: string, content: string) => void;
+}

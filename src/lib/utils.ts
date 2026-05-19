@@ -1,7 +1,28 @@
 import { clsx, type ClassValue } from 'clsx';
+import type { CandidateStatus } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs);
+  return clsx(...inputs);
+}
+
+export function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function formatDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export function getInitials(name: string): string {
@@ -13,48 +34,34 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+export function generateId(): string {
+  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 }
 
-export function formatCurrency(amount: number, currency = '$'): string {
-  return `${currency}${amount.toLocaleString()}`;
-}
-
-export function getStatusVariant(
-  status: string
+export function getCandidateStatusVariant(
+  status: CandidateStatus
 ): 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'muted' {
-  const map: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'muted'> = {
-    // Job statuses
-    open: 'success',
-    draft: 'muted',
-    paused: 'warning',
-    closed: 'danger',
-    // Application statuses
-    new: 'default',
-    screening: 'info',
-    interview: 'purple',
-    offer: 'warning',
-    hired: 'success',
-    rejected: 'danger',
-    withdrawn: 'muted',
-    // Interview statuses
-    scheduled: 'info',
-    completed: 'success',
-    cancelled: 'danger',
-    no_show: 'warning',
-    // Requisition statuses
-    pending: 'warning',
-    approved: 'success',
-    fulfilled: 'success',
-    // Referral statuses
-    reviewed: 'info',
-    // Priority
-    low: 'muted',
-    medium: 'info',
-    high: 'warning',
-    urgent: 'danger',
-  };
-  return map[status] ?? 'default';
+  switch (status) {
+    case 'new':
+      return 'default';
+    case 'screening':
+      return 'info';
+    case 'interview':
+      return 'purple';
+    case 'offer':
+      return 'warning';
+    case 'hired':
+      return 'success';
+    case 'rejected':
+      return 'danger';
+    case 'withdrawn':
+      return 'muted';
+    default:
+      return 'default';
+  }
+}
+
+export function truncate(str: string, maxLength: number): string {
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength) + '...';
 }

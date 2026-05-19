@@ -1,28 +1,34 @@
 import { cn } from '@/lib/utils';
 import styles from './Select.module.css';
 
+export type SelectOption = { value: string; label: string };
+
 export type SelectProps = {
   label?: string;
-  value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  options?: SelectOption[];
+  children?: React.ReactNode;
   error?: string;
   className?: string;
   name?: string;
   required?: boolean;
   disabled?: boolean;
-  children?: React.ReactNode;
+  placeholder?: string;
 };
 
 export default function Select({
   label,
   value,
   onChange,
+  options,
+  children,
   error,
   className,
   name,
   required,
   disabled,
-  children,
+  placeholder,
 }: SelectProps) {
   return (
     <div className={cn(styles.wrapper, className)}>
@@ -40,7 +46,14 @@ export default function Select({
         required={required}
         disabled={disabled}
       >
-        {children}
+        {placeholder && <option value="">{placeholder}</option>}
+        {options
+          ? options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))
+          : children}
       </select>
       {error && <span className={styles.error}>{error}</span>}
     </div>
