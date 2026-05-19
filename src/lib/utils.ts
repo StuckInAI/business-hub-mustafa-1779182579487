@@ -1,17 +1,52 @@
 import { clsx, type ClassValue } from 'clsx';
 
 export function cn(...inputs: ClassValue[]) {
-  return clsx(...inputs);
+  return clsx(inputs);
 }
 
-export function formatDate(dateStr: string): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+export function formatDate(dateString?: string): string {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function formatSalary(min?: number, max?: number, currency = 'USD'): string {
+  if (!min && !max) return 'Not specified';
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(n);
+  if (min && max) return `${fmt(min)} – ${fmt(max)}`;
+  if (min) return `From ${fmt(min)}`;
+  return `Up to ${fmt(max!)}`;
+}
+
+export function jobTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    full_time: 'Full-time',
+    part_time: 'Part-time',
+    contract: 'Contract',
+    internship: 'Internship',
+  };
+  return labels[type] ?? type;
+}
+
+export function workModeLabel(mode: string): string {
+  const labels: Record<string, string> = {
+    onsite: 'On-site',
+    remote: 'Remote',
+    hybrid: 'Hybrid',
+  };
+  return labels[mode] ?? mode;
 }
 
 export function getInitials(name: string): string {
-  if (!name) return '?';
   return name
     .split(' ')
     .map((n) => n[0])
@@ -20,40 +55,6 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function getStatusVariant(
-  status: string
-): 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'muted' {
-  switch (status) {
-    case 'open':
-    case 'active':
-    case 'hired':
-    case 'completed':
-    case 'approved':
-      return 'success';
-    case 'closed':
-    case 'rejected':
-    case 'cancelled':
-    case 'high':
-      return 'danger';
-    case 'draft':
-    case 'on_hold':
-    case 'pending':
-    case 'screening':
-    case 'scheduled':
-      return 'warning';
-    case 'interviewing':
-    case 'interview':
-    case 'technical_interview':
-    case 'final_interview':
-    case 'phone_screen':
-      return 'info';
-    case 'offered':
-    case 'offer':
-      return 'purple';
-    case 'new':
-    case 'applied':
-      return 'default';
-    default:
-      return 'muted';
-  }
+export function generateId(): string {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
