@@ -4,14 +4,7 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
-export function formatDate(dateStr: string): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
 export function getInitials(name: string): string {
-  if (!name) return '';
   return name
     .split(' ')
     .map((n) => n[0])
@@ -20,27 +13,48 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function generateId(): string {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+export function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function getCandidateStatusVariant(
+export function formatCurrency(amount: number, currency = '$'): string {
+  return `${currency}${amount.toLocaleString()}`;
+}
+
+export function getStatusVariant(
   status: string
 ): 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'muted' {
-  switch (status) {
-    case 'new':
-      return 'info';
-    case 'screening':
-      return 'default';
-    case 'interview':
-      return 'purple';
-    case 'offer':
-      return 'warning';
-    case 'hired':
-      return 'success';
-    case 'rejected':
-      return 'danger';
-    default:
-      return 'muted';
-  }
+  const map: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'muted'> = {
+    // Job statuses
+    open: 'success',
+    draft: 'muted',
+    paused: 'warning',
+    closed: 'danger',
+    // Application statuses
+    new: 'default',
+    screening: 'info',
+    interview: 'purple',
+    offer: 'warning',
+    hired: 'success',
+    rejected: 'danger',
+    withdrawn: 'muted',
+    // Interview statuses
+    scheduled: 'info',
+    completed: 'success',
+    cancelled: 'danger',
+    no_show: 'warning',
+    // Requisition statuses
+    pending: 'warning',
+    approved: 'success',
+    fulfilled: 'success',
+    // Referral statuses
+    reviewed: 'info',
+    // Priority
+    low: 'muted',
+    medium: 'info',
+    high: 'warning',
+    urgent: 'danger',
+  };
+  return map[status] ?? 'default';
 }

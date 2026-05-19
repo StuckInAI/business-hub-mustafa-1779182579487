@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus, Calendar, Clock } from 'lucide-react';
 import { useStoreContext } from '@/context/StoreContext';
 import PageHeader from '@/components/ui/PageHeader';
 import Button from '@/components/ui/Button';
@@ -8,200 +7,226 @@ import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import EmptyState from '@/components/ui/EmptyState';
-import { formatDate, generateId } from '@/lib/utils';
-import type { Interview, InterviewType, InterviewStatus } from '@/types';
+import { Calendar, Plus, Clock } from 'lucide-react';
+import { getStatusVariant, formatDate } from '@/lib/utils';
+import type { Interview } from '@/types';
 
-type FormState = {
+type InterviewForm = {
+  applicationId: string;
   jobId: string;
   candidateId: string;
-  interviewerId: string;
-  type: InterviewType | '';
+  type: string;
+  status: string;
   scheduledAt: string;
   duration: string;
-  location: string;
+  interviewerIds: string;
+  meetingLink: string;
   notes: string;
 };
 
-const EMPTY_FORM: FormState = {
+const EMPTY_FORM: InterviewForm = {
+  applicationId: '',
   jobId: '',
   candidateId: '',
-  interviewerId: '',
-  type: '',
+  type: 'phone',
+  status: 'scheduled',
   scheduledAt: '',
   duration: '60',
-  location: '',
+  interviewerIds: '',
+  meetingLink: '',
   notes: '',
 };
 
 export default function InterviewsPage() {
-  const { interviews, jobs, candidates, addInterview, updateInterview, deleteInterview, currentUser } =
-    useStoreContext();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Interview | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const { interviews, candidates, jobs, applications, addInterview, updateInterview, deleteInterview } = useStoreContext();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<InterviewForm>(EMPTY_FORM);
 
-  const field = (key: keyof FormState) => ({
-    value: form[key] as string,
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-      setForm((f) => ({ ...f, [key]: e.target.value })),
-    label: '',
-  });
-
-  const openAdd = () => {
-    setEditing(null);
+  function openAdd() {
     setForm(EMPTY_FORM);
-    setModalOpen(true);
-  };
+    setEditingId(null);
+    setIsModalOpen(true);
+  }
 
-  const openEdit = (iv: Interview) => {
-    setEditing(iv);
+  function openEdit(iv: Interview) {
     setForm({
+      applicationId: iv.applicationId,
       jobId: iv.jobId,
       candidateId: iv.candidateId,
-      interviewerId: iv.interviewerId || '',
       type: iv.type,
-      scheduledAt: iv.scheduledAt,
+      status: iv.status,
+      scheduledAt: iv.scheduledAt ? iv.scheduledAt.slice(0, 16) : '',
       duration: String(iv.duration),
-      location: iv.location || '',
+      interviewerIds: (iv.interviewerIds || []).join(', '),
+      meetingLink: iv.meetingLink || '',
       notes: iv.notes || '',
     });
-    setModalOpen(true);
-  };
+    setEditingId(iv.id);
+    setIsModalOpen(true);
+  }
 
-  const handleSubmit = () => {
-    if (!form.jobId || !form.candidateId || !form.type || !form.scheduledAt) return;
-    if (editing) {
-      updateInterview({
-        ...editing,
-        jobId: form.jobId,
-        candidateId: form.candidateId,
-        interviewerId: form.interviewerId || undefined,
-        type: form.type as InterviewType,
-        scheduledAt: form.scheduledAt,
-        duration: Number(form.duration),
-        location: form.location || undefined,
-        notes: form.notes || undefined,
-      });
+  function handleSave() {
+    const data = {
+      applicationId: form.applicationId,
+      jobId: form.jobId,
+      candidateId: form.candidateId,
+      type: form.type as Interview['type'],
+      status: form.status as Interview['status'],
+      scheduledAt: form.scheduledAt,
+      duration: Number(form.duration),
+      interviewerIds: form.interviewerIds.split(',').map((s) => s.trim()).filter(Boolean),
+      meetingLink: form.meetingLink,
+      notes: form.notes,
+    };
+    if (editingId) {
+      updateInterview(editingId, data);
     } else {
-      addInterview({
-        id: generateId(),
-        applicationId: '',
-        jobId: form.jobId,
-        candidateId: form.candidateId,
-        interviewerId: form.interviewerId || undefined,
-        type: form.type as InterviewType,
-        status: 'scheduled' as InterviewStatus,
-        scheduledAt: form.scheduledAt,
-        duration: Number(form.duration),
-        location: form.location || undefined,
-        notes: form.notes || undefined,
-        createdAt: new Date().toISOString(),
-      });
+      addInterview(data);
     }
-    setModalOpen(false);
-  };
+    setIsModalOpen(false);
+  }
 
-  const statusVariant: Record<InterviewStatus, 'success' | 'warning' | 'danger' | 'muted' | 'default'> = {
-    scheduled: 'default',
-    completed: 'success',
-    cancelled: 'danger',
-    no_show: 'warning',
-  };
+  function getCandidateName(id: string) {
+    return candidates.find((c) => c.id === id)?.name ?? id;
+  }
+
+  function getJobTitle(id: string) {
+    return jobs.find((j) => j.id === id)?.title ?? id;
+  }
 
   return (
     <div>
       <PageHeader
         title="Interviews"
-        subtitle="Manage scheduled interviews"
-        actions={<Button onClick={openAdd}><Plus size={16} /> Schedule Interview</Button>}
+        subtitle="Schedule and manage candidate interviews"
+        actions={
+          <Button onClick={openAdd}>
+            <Plus size={16} /> Schedule Interview
+          </Button>
+        }
       />
 
-      {interviews.length === 0 ? (
-        <EmptyState
-          icon={<Calendar size={32} />}
-          title="No interviews scheduled"
-          description="Schedule your first interview to get started."
-          action={<Button onClick={openAdd}><Plus size={16} /> Schedule Interview</Button>}
-        />
-      ) : (
-        <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {interviews.map((iv) => {
-            const job = jobs.find((j) => j.id === iv.jobId);
-            const candidate = candidates.find((c) => c.id === iv.candidateId);
-            return (
+      <div style={{ padding: '24px 32px' }}>
+        {interviews.length === 0 ? (
+          <EmptyState
+            icon={<Calendar size={28} />}
+            title="No interviews scheduled"
+            description="Schedule your first interview to get started."
+            action={<Button onClick={openAdd}><Plus size={16} /> Schedule Interview</Button>}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {interviews.map((iv) => (
               <div
                 key={iv.id}
                 style={{
                   background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-lg)',
                   padding: '16px 20px',
-                  border: '1px solid var(--color-border)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
                   gap: 16,
+                  flexWrap: 'wrap',
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>
-                    {candidate ? candidate.name : 'Unknown Candidate'}
+                  <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-text-primary)' }}>
+                    {getCandidateName(iv.candidateId)}
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                    {job ? job.title : 'Unknown Job'} · {iv.type.replace('_', ' ')}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4, display: 'flex', gap: 12 }}>
-                    <span><Calendar size={12} style={{ verticalAlign: 'middle' }} /> {formatDate(iv.scheduledAt)}</span>
-                    <span><Clock size={12} style={{ verticalAlign: 'middle' }} /> {iv.duration} min</span>
+                    {getJobTitle(iv.jobId)}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <Badge variant={statusVariant[iv.status]}>{iv.status.replace('_', ' ')}</Badge>
+                <Badge variant={getStatusVariant(iv.type)}>{iv.type.replace('_', ' ')}</Badge>
+                <Badge variant={getStatusVariant(iv.status)}>{iv.status.replace('_', ' ')}</Badge>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Calendar size={13} />{formatDate(iv.scheduledAt)}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Clock size={13} />{iv.duration}min
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
                   <Button size="sm" variant="secondary" onClick={() => openEdit(iv)}>Edit</Button>
                   <Button size="sm" variant="danger" onClick={() => deleteInterview(iv.id)}>Delete</Button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editing ? 'Edit Interview' : 'Schedule Interview'}
-        size="md"
-      >
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Edit Interview' : 'Schedule Interview'} size="lg">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Select label="Job *" value={form.jobId} onChange={(e) => setForm(f => ({ ...f, jobId: e.target.value }))}>
-            <option value="">Select job...</option>
-            {jobs.map((j) => (
-              <option key={j.id} value={j.id}>{j.title}</option>
-            ))}
-          </Select>
-          <Select label="Candidate *" value={form.candidateId} onChange={(e) => setForm(f => ({ ...f, candidateId: e.target.value }))}>
-            <option value="">Select candidate...</option>
-            {candidates.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Select>
-          <Select label="Interviewer" value={form.interviewerId} onChange={(e) => setForm(f => ({ ...f, interviewerId: e.target.value }))}>
-            <option value="">Select interviewer (optional)...</option>
-          </Select>
-          <Select label="Type" value={form.type} onChange={(e) => setForm(f => ({ ...f, type: e.target.value as InterviewType }))}>
-            <option value="">Select type...</option>
-            <option value="phone">Phone</option>
-            <option value="video">Video</option>
-            <option value="onsite">Onsite</option>
-            <option value="technical">Technical</option>
-            <option value="hr">HR</option>
-          </Select>
-          <Input label="Scheduled At *" type="datetime-local" {...field('scheduledAt')} />
-          <Input label="Duration (minutes)" type="number" {...field('duration')} />
-          <Input label="Location" {...field('location')} />
-          <Input label="Notes" {...field('notes')} />
+          <Select
+            label="Application"
+            value={form.applicationId}
+            onChange={(e) => setForm((f) => ({ ...f, applicationId: e.target.value }))}
+            options={[
+              { value: '', label: 'Select application...' },
+              ...applications.map((a) => ({ value: a.id, label: `${getCandidateName(a.candidateId)} - ${getJobTitle(a.jobId)}` })),
+            ]}
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Select
+              label="Type"
+              value={form.type}
+              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+              options={[
+                { value: 'phone', label: 'Phone' },
+                { value: 'video', label: 'Video' },
+                { value: 'onsite', label: 'Onsite' },
+                { value: 'technical', label: 'Technical' },
+                { value: 'behavioral', label: 'Behavioral' },
+              ]}
+            />
+            <Select
+              label="Status"
+              value={form.status}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+              options={[
+                { value: 'scheduled', label: 'Scheduled' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'cancelled', label: 'Cancelled' },
+                { value: 'no_show', label: 'No Show' },
+              ]}
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Input
+              label="Scheduled At"
+              type="datetime-local"
+              value={form.scheduledAt}
+              onChange={(e) => setForm((f) => ({ ...f, scheduledAt: e.target.value }))}
+            />
+            <Input
+              label="Duration (minutes)"
+              type="number"
+              value={form.duration}
+              onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
+            />
+          </div>
+          <Input
+            label="Interviewer IDs (comma separated)"
+            value={form.interviewerIds}
+            onChange={(e) => setForm((f) => ({ ...f, interviewerIds: e.target.value }))}
+            placeholder="user-1, user-2"
+          />
+          <Input
+            label="Meeting Link"
+            value={form.meetingLink}
+            onChange={(e) => setForm((f) => ({ ...f, meetingLink: e.target.value }))}
+            placeholder="https://meet.example.com/..."
+          />
+          <Input
+            label="Notes"
+            value={form.notes}
+            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+          />
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit}>{editing ? 'Update' : 'Schedule'}</Button>
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>{editingId ? 'Save Changes' : 'Schedule'}</Button>
           </div>
         </div>
       </Modal>
