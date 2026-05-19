@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { StoreType } from '@/hooks/useStore';
+import type { StoreType } from '@/types';
 
 export const StoreContext = createContext<StoreType | null>(null);
 

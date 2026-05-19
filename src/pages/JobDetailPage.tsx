@@ -1,13 +1,13 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, DollarSign } from 'lucide-react';
 import { useStoreContext } from '@/context/StoreContext';
 import PageHeader from '@/components/ui/PageHeader';
-import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import { formatDate, getStatusVariant } from '@/lib/utils';
+import Button from '@/components/ui/Button';
+import { formatDate } from '@/lib/utils';
 
 export default function JobDetailPage() {
-  const { jobId } = useParams<{ jobId: string }>();
+  const { jobId } = useParams();
   const navigate = useNavigate();
   const { jobs, applications, candidates } = useStoreContext();
 
@@ -30,60 +30,67 @@ export default function JobDetailPage() {
         subtitle={`${job.department} · ${job.location}`}
         actions={
           <Button variant="secondary" onClick={() => navigate('/jobs')}>
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} />
+            Back
           </Button>
         }
       />
+      <div style={{ padding: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+          {/* Left */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+              <h3 style={{ fontWeight: 700, marginBottom: '0.75rem' }}>Job Details</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem' }}>
+                <div><span style={{ fontWeight: 600 }}>Type:</span> {job.type.replace('_', ' ')}</div>
+                {job.salary && <div><span style={{ fontWeight: 600 }}>Salary:</span> {job.salary}</div>}
+                {job.closingAt && <div><span style={{ fontWeight: 600 }}>Closes:</span> {formatDate(job.closingAt)}</div>}
+              </div>
+            </div>
 
-      <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <Badge variant={getStatusVariant(job.status)}>{job.status}</Badge>
-            <Badge variant="muted">{job.type.replace('_', ' ')}</Badge>
-          </div>
-          <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>{job.description}</p>
-          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-            <div><span style={{ fontWeight: 600 }}>Posted:</span> {formatDate(job.postedAt)}</div>
-            {job.closingDate && <div><span style={{ fontWeight: 600 }}>Closes:</span> {formatDate(job.closingDate)}</div>}
-          </div>
-        </div>
+            {job.description && (
+              <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+                <h3 style={{ fontWeight: 700, marginBottom: '0.75rem' }}>Description</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>{job.description}</p>
+              </div>
+            )}
 
-        <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', boxShadow: 'var(--shadow-sm)' }}>
-          <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>Applications ({jobApplications.length})</h2>
-          {jobApplications.length === 0 ? (
-            <p style={{ color: 'var(--color-text-secondary)' }}>No applications yet.</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Candidate</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Status</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Applied</th>
-                </tr>
-              </thead>
-              <tbody>
-                {jobApplications.map((app) => {
-                  const candidate = candidates.find((c) => c.id === app.candidateId);
-                  return (
-                    <tr key={app.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                      <td style={{ padding: '0.75rem 1rem' }}>
-                        <div style={{ fontWeight: 600 }}>
-                          {candidate ? `${candidate.firstName} ${candidate.lastName}` : 'Unknown'}
-                        </div>
-                        <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-                          {candidate?.email}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.75rem 1rem' }}>
-                        <Badge variant={getStatusVariant(app.status)}>{app.status}</Badge>
-                      </td>
-                      <td style={{ padding: '0.75rem 1rem' }}>{formatDate(app.appliedAt)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+            {job.requirements && (
+              <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+                <h3 style={{ fontWeight: 700, marginBottom: '0.75rem' }}>Requirements</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>{job.requirements}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Right */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+              <h3 style={{ fontWeight: 700, marginBottom: '0.75rem' }}>Status</h3>
+              <Badge variant={job.status === 'open' ? 'success' : job.status === 'closed' ? 'danger' : 'warning'}>
+                {job.status}
+              </Badge>
+            </div>
+
+            <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+              <h3 style={{ fontWeight: 700, marginBottom: '0.75rem' }}>Applications ({jobApplications.length})</h3>
+              {jobApplications.length === 0 ? (
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>No applications yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {jobApplications.map((app) => {
+                    const candidate = candidates.find((c) => c.id === app.candidateId);
+                    return (
+                      <div key={app.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
+                        <span>{candidate ? `${candidate.firstName} ${candidate.lastName}` : 'Unknown'}</span>
+                        <Badge variant="default">{app.status}</Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
