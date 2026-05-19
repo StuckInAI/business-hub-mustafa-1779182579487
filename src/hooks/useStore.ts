@@ -1,181 +1,187 @@
-import { useState, useCallback } from 'react';
-import type { StoreType, Job, Candidate, Application, Interview, Requisition, Referral, UserRole, CandidateStatus } from '@/types';
+import { useState } from 'react';
+import type { Job, Candidate, Interview, Requisition, Referral, User, UserRole, StoreType } from '@/types';
 import { loadFromStorage, saveToStorage } from '@/lib/storage';
-import { generateId } from '@/lib/utils';
 import { seedData } from '@/lib/seedData';
+import { generateId } from '@/lib/utils';
 
-const STORAGE_KEY = 'ats_store';
-
-function getInitialState() {
-  const stored = loadFromStorage(STORAGE_KEY);
-  if (stored) return stored;
-  return seedData;
+function initData<T>(key: string, fallback: T[]): T[] {
+  const stored = loadFromStorage<T[]>(key);
+  if (stored && stored.length > 0) return stored;
+  saveToStorage(key, fallback);
+  return fallback;
 }
 
 export function useStore(): StoreType {
-  const [state, setState] = useState(getInitialState);
-
-  const persist = useCallback((updater: (prev: typeof state) => typeof state) => {
-    setState((prev) => {
-      const next = updater(prev);
-      saveToStorage(STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
+  const [jobs, setJobs] = useState<Job[]>(() => initData('jobs', seedData.jobs));
+  const [candidates, setCandidates] = useState<Candidate[]>(() => initData('candidates', seedData.candidates));
+  const [interviews, setInterviews] = useState<Interview[]>(() => initData('interviews', seedData.interviews));
+  const [requisitions, setRequisitions] = useState<Requisition[]>(() => initData('requisitions', seedData.requisitions));
+  const [referrals, setReferrals] = useState<Referral[]>(() => initData('referrals', seedData.referrals));
+  const [users] = useState<User[]>(() => initData('users', seedData.users));
+  const [currentUser, setCurrentUser] = useState<User>(() => {
+    const stored = loadFromStorage<User>('currentUser');
+    return stored ?? seedData.users[0];
+  });
 
   // Jobs
-  const addJob = useCallback((job: Omit<Job, 'id' | 'createdAt'>) => {
-    persist((prev) => ({
-      ...prev,
-      jobs: [...prev.jobs, { ...job, id: generateId(), createdAt: new Date().toISOString() }],
-    }));
-  }, [persist]);
+  const addJob = (job: Omit<Job, 'id' | 'createdAt'>) => {
+    const newJob: Job = { ...job, id: generateId(), createdAt: new Date().toISOString() };
+    setJobs((prev) => {
+      const next = [...prev, newJob];
+      saveToStorage('jobs', next);
+      return next;
+    });
+  };
 
-  const updateJob = useCallback((id: string, updates: Partial<Job>) => {
-    persist((prev) => ({
-      ...prev,
-      jobs: prev.jobs.map((j) => (j.id === id ? { ...j, ...updates } : j)),
-    }));
-  }, [persist]);
+  const updateJob = (id: string, updates: Partial<Job>) => {
+    setJobs((prev) => {
+      const next = prev.map((j) => (j.id === id ? { ...j, ...updates } : j));
+      saveToStorage('jobs', next);
+      return next;
+    });
+  };
 
-  const deleteJob = useCallback((id: string) => {
-    persist((prev) => ({
-      ...prev,
-      jobs: prev.jobs.filter((j) => j.id !== id),
-    }));
-  }, [persist]);
+  const deleteJob = (id: string) => {
+    setJobs((prev) => {
+      const next = prev.filter((j) => j.id !== id);
+      saveToStorage('jobs', next);
+      return next;
+    });
+  };
 
   // Candidates
-  const addCandidate = useCallback((candidate: Omit<Candidate, 'id' | 'appliedAt' | 'createdAt'>) => {
-    const now = new Date().toISOString();
-    persist((prev) => ({
-      ...prev,
-      candidates: [...prev.candidates, { ...candidate, id: generateId(), appliedAt: now, createdAt: now }],
-    }));
-  }, [persist]);
+  const addCandidate = (candidate: Omit<Candidate, 'id' | 'createdAt'>) => {
+    const newCandidate: Candidate = { ...candidate, id: generateId(), createdAt: new Date().toISOString() };
+    setCandidates((prev) => {
+      const next = [...prev, newCandidate];
+      saveToStorage('candidates', next);
+      return next;
+    });
+  };
 
-  const updateCandidate = useCallback((id: string, updates: Partial<Candidate>) => {
-    persist((prev) => ({
-      ...prev,
-      candidates: prev.candidates.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-    }));
-  }, [persist]);
+  const updateCandidate = (id: string, updates: Partial<Candidate>) => {
+    setCandidates((prev) => {
+      const next = prev.map((c) => (c.id === id ? { ...c, ...updates } : c));
+      saveToStorage('candidates', next);
+      return next;
+    });
+  };
 
-  const updateCandidateStatus = useCallback((id: string, status: CandidateStatus) => {
-    persist((prev) => ({
-      ...prev,
-      candidates: prev.candidates.map((c) => (c.id === id ? { ...c, status } : c)),
-    }));
-  }, [persist]);
-
-  const deleteCandidate = useCallback((id: string) => {
-    persist((prev) => ({
-      ...prev,
-      candidates: prev.candidates.filter((c) => c.id !== id),
-    }));
-  }, [persist]);
-
-  // Applications
-  const addApplication = useCallback((application: Omit<Application, 'id' | 'appliedAt'>) => {
-    persist((prev) => ({
-      ...prev,
-      applications: [...prev.applications, { ...application, id: generateId(), appliedAt: new Date().toISOString() }],
-    }));
-  }, [persist]);
-
-  const updateApplication = useCallback((id: string, updates: Partial<Application>) => {
-    persist((prev) => ({
-      ...prev,
-      applications: prev.applications.map((a) => (a.id === id ? { ...a, ...updates } : a)),
-    }));
-  }, [persist]);
-
-  const deleteApplication = useCallback((id: string) => {
-    persist((prev) => ({
-      ...prev,
-      applications: prev.applications.filter((a) => a.id !== id),
-    }));
-  }, [persist]);
+  const deleteCandidate = (id: string) => {
+    setCandidates((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      saveToStorage('candidates', next);
+      return next;
+    });
+  };
 
   // Interviews
-  const addInterview = useCallback((interview: Omit<Interview, 'id'>) => {
-    persist((prev) => ({
-      ...prev,
-      interviews: [...prev.interviews, { ...interview, id: generateId() }],
-    }));
-  }, [persist]);
+  const addInterview = (interview: Omit<Interview, 'id' | 'createdAt'>) => {
+    const newInterview: Interview = { ...interview, id: generateId(), createdAt: new Date().toISOString() };
+    setInterviews((prev) => {
+      const next = [...prev, newInterview];
+      saveToStorage('interviews', next);
+      return next;
+    });
+  };
 
-  const updateInterview = useCallback((id: string, updates: Partial<Interview>) => {
-    persist((prev) => ({
-      ...prev,
-      interviews: prev.interviews.map((i) => (i.id === id ? { ...i, ...updates } : i)),
-    }));
-  }, [persist]);
+  const updateInterview = (id: string, updates: Partial<Interview>) => {
+    setInterviews((prev) => {
+      const next = prev.map((i) => (i.id === id ? { ...i, ...updates } : i));
+      saveToStorage('interviews', next);
+      return next;
+    });
+  };
 
-  const deleteInterview = useCallback((id: string) => {
-    persist((prev) => ({
-      ...prev,
-      interviews: prev.interviews.filter((i) => i.id !== id),
-    }));
-  }, [persist]);
+  const deleteInterview = (id: string) => {
+    setInterviews((prev) => {
+      const next = prev.filter((i) => i.id !== id);
+      saveToStorage('interviews', next);
+      return next;
+    });
+  };
 
   // Requisitions
-  const addRequisition = useCallback((req: Omit<Requisition, 'id' | 'createdAt'>) => {
-    persist((prev) => ({
-      ...prev,
-      requisitions: [...prev.requisitions, { ...req, id: generateId(), createdAt: new Date().toISOString() }],
-    }));
-  }, [persist]);
+  const addRequisition = (req: Omit<Requisition, 'id' | 'createdAt'>) => {
+    const newReq: Requisition = { ...req, id: generateId(), createdAt: new Date().toISOString() };
+    setRequisitions((prev) => {
+      const next = [...prev, newReq];
+      saveToStorage('requisitions', next);
+      return next;
+    });
+  };
 
-  const updateRequisition = useCallback((id: string, updates: Partial<Requisition>) => {
-    persist((prev) => ({
-      ...prev,
-      requisitions: prev.requisitions.map((r) => (r.id === id ? { ...r, ...updates } : r)),
-    }));
-  }, [persist]);
+  const updateRequisition = (id: string, updates: Partial<Requisition>) => {
+    setRequisitions((prev) => {
+      const next = prev.map((r) => (r.id === id ? { ...r, ...updates } : r));
+      saveToStorage('requisitions', next);
+      return next;
+    });
+  };
+
+  const deleteRequisition = (id: string) => {
+    setRequisitions((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      saveToStorage('requisitions', next);
+      return next;
+    });
+  };
 
   // Referrals
-  const addReferral = useCallback((ref: Omit<Referral, 'id' | 'createdAt'>) => {
-    persist((prev) => ({
-      ...prev,
-      referrals: [...prev.referrals, { ...ref, id: generateId(), createdAt: new Date().toISOString() }],
-    }));
-  }, [persist]);
+  const addReferral = (referral: Omit<Referral, 'id' | 'createdAt'>) => {
+    const newReferral: Referral = { ...referral, id: generateId(), createdAt: new Date().toISOString() };
+    setReferrals((prev) => {
+      const next = [...prev, newReferral];
+      saveToStorage('referrals', next);
+      return next;
+    });
+  };
 
-  const updateReferral = useCallback((id: string, updates: Partial<Referral>) => {
-    persist((prev) => ({
-      ...prev,
-      referrals: prev.referrals.map((r) => (r.id === id ? { ...r, ...updates } : r)),
-    }));
-  }, [persist]);
+  const updateReferral = (id: string, updates: Partial<Referral>) => {
+    setReferrals((prev) => {
+      const next = prev.map((r) => (r.id === id ? { ...r, ...updates } : r));
+      saveToStorage('referrals', next);
+      return next;
+    });
+  };
 
-  // User / Role
-  const switchRole = useCallback((role: UserRole) => {
-    persist((prev) => ({
-      ...prev,
-      currentUser: { ...prev.currentUser, role },
-    }));
-  }, [persist]);
+  const deleteReferral = (id: string) => {
+    setReferrals((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      saveToStorage('referrals', next);
+      return next;
+    });
+  };
+
+  const switchRole = (role: UserRole) => {
+    const user = users.find((u) => u.role === role) ?? { ...currentUser, role };
+    setCurrentUser(user);
+    saveToStorage('currentUser', user);
+  };
 
   return {
-    ...state,
+    jobs,
+    candidates,
+    interviews,
+    requisitions,
+    referrals,
+    users,
+    currentUser,
     addJob,
     updateJob,
     deleteJob,
     addCandidate,
     updateCandidate,
-    updateCandidateStatus,
     deleteCandidate,
-    addApplication,
-    updateApplication,
-    deleteApplication,
     addInterview,
     updateInterview,
     deleteInterview,
     addRequisition,
     updateRequisition,
+    deleteRequisition,
     addReferral,
     updateReferral,
+    deleteReferral,
     switchRole,
   };
 }

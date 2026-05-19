@@ -1,70 +1,43 @@
 .page {
+  padding: var(--space-8);
   display: flex;
   flex-direction: column;
-  height: 100%;
+  gap: var(--space-6);
 }
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: var(--space-4);
-  padding: var(--space-6) var(--space-8);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.content {
-  padding: var(--space-6) var(--space-8);
-  flex: 1;
-  overflow-y: auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-6);
-  align-content: start;
 }
 
 .section {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
   overflow: hidden;
 }
 
 .sectionHeader {
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sectionTitle {
-  font-weight: 700;
   font-size: var(--font-size-md);
+  font-weight: 700;
   color: var(--color-text-primary);
 }
 
-.sectionLink {
-  font-size: var(--font-size-sm);
-  color: var(--color-primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.sectionLink:hover {
-  text-decoration: underline;
-}
-
 .list {
-  padding: var(--space-2) 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .listItem {
   display: flex;
   align-items: center;
-  padding: var(--space-3) var(--space-5);
   gap: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border-light);
+  text-decoration: none;
   transition: background var(--transition-fast);
 }
 
@@ -76,78 +49,83 @@
   background: var(--color-bg);
 }
 
-.listItemContent {
+.itemIcon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.itemContent {
   flex: 1;
   min-width: 0;
 }
 
-.listItemTitle {
-  font-weight: 600;
+.itemTitle {
   font-size: var(--font-size-sm);
+  font-weight: 600;
   color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.listItemSub {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.iconBox {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.empty {
-  padding: var(--space-6);
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-.activityFeed {
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-4) var(--space-5);
-  gap: var(--space-4);
-}
-
-.activityItem {
-  display: flex;
-  gap: var(--space-3);
-  font-size: var(--font-size-sm);
-}
-
-.activityDot {
-  width: 8px;
-  height: 8px;
-  min-width: 8px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  margin-top: 6px;
-}
-
-.activityText {
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-}
-
-.activityTime {
+.itemMeta {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-top: 2px;
 }
 
-.wide {
-  grid-column: 1 / -1;
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.pipelineBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.pipelineRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pipelineLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.pipelineTrack {
+  flex: 1;
+  height: 8px;
+  background: var(--color-border-light);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.pipelineFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+
+.pipelineCount {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  width: 24px;
+  text-align: right;
 }

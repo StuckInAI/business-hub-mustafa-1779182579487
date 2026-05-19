@@ -1,134 +1,120 @@
 import { useState } from 'react';
-import { Gift, Plus } from 'lucide-react';
+import { Gift, Plus, Trash2 } from 'lucide-react';
 import { useStoreContext } from '@/context/StoreContext';
 import PageHeader from '@/components/ui/PageHeader';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import EmptyState from '@/components/ui/EmptyState';
-import Badge from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
-import type { ReferralStatus } from '@/types';
+import type { Referral, ReferralStatus } from '@/types';
 
-const REFERRAL_STATUS_OPTIONS: { label: string; value: ReferralStatus }[] = [
-  { label: 'Pending', value: 'pending' },
-  { label: 'Reviewing', value: 'reviewing' },
-  { label: 'Hired', value: 'hired' },
-  { label: 'Rejected', value: 'rejected' },
-];
-
-type FormState = {
+type ReferralForm = {
   candidateName: string;
   candidateEmail: string;
   jobId: string;
   notes: string;
-  status: ReferralStatus;
 };
 
-const defaultForm: FormState = {
+const STATUS_VARIANTS: Record<ReferralStatus, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'muted'> = {
+  pending: 'warning',
+  reviewing: 'info',
+  hired: 'success',
+  rejected: 'danger',
+};
+
+const DEFAULT_FORM: ReferralForm = {
   candidateName: '',
   candidateEmail: '',
   jobId: '',
   notes: '',
-  status: 'pending',
 };
 
 export default function ReferralsPage() {
   const { referrals, jobs, users, currentUser, addReferral, updateReferral, deleteReferral } = useStoreContext();
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState<FormState>(defaultForm);
+  const [form, setForm] = useState<ReferralForm>(DEFAULT_FORM);
 
-  const jobOptions = jobs.map((j) => ({ label: j.title, value: j.id }));
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    addReferral({
+  const handleSubmit = () => {
+    if (!form.candidateName || !form.jobId) return;
+    const payload: Omit<Referral, 'id' | 'createdAt'> = {
       referrerId: currentUser.id,
       candidateName: form.candidateName,
       candidateEmail: form.candidateEmail,
       jobId: form.jobId,
-      status: form.status,
-      notes: form.notes,
-    });
+      status: 'pending',
+      notes: form.notes || undefined,
+    };
+    addReferral(payload);
     setShowModal(false);
-    setForm(defaultForm);
-  }
+    setForm(DEFAULT_FORM);
+  };
 
-  function getStatusVariant(status: ReferralStatus) {
-    switch (status) {
-      case 'pending': return 'warning';
-      case 'reviewing': return 'info';
-      case 'hired': return 'success';
-      case 'rejected': return 'danger';
-      default: return 'muted';
-    }
-  }
+  const field = (key: keyof ReferralForm) => ({
+    value: form[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setForm((f) => ({ ...f, [key]: e.target.value })),
+  });
 
   return (
     <div>
       <PageHeader
         title="Referrals"
-        subtitle={`${referrals.length} referrals`}
+        subtitle={`${referrals.length} total`}
         actions={
-          <Button onClick={() => setShowModal(true)}>
+          <Button onClick={() => { setForm(DEFAULT_FORM); setShowModal(true); }}>
             <Plus size={16} /> Add Referral
           </Button>
         }
       />
 
-      <div style={{ padding: 'var(--space-6) var(--space-8)' }}>
+      <div style={{ padding: 'var(--space-8)' }}>
         {referrals.length === 0 ? (
-          <EmptyState
-            icon={<Gift size={28} />}
-            title="No referrals yet"
-            description="Refer a candidate for an open position."
-            action={<Button onClick={() => setShowModal(true)}>Add Referral</Button>}
-          />
+          <EmptyState icon={<Gift size={28} />} title="No referrals yet" description="Refer candidates for open positions." />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {referrals.map((referral) => {
               const job = jobs.find((j) => j.id === referral.jobId);
               const referrer = users.find((u) => u.id === referral.referrerId);
               return (
-                <div
-                  key={referral.id}
-                  style={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: 'var(--space-4) var(--space-5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-4)',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                <div key={referral.id} style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: 'var(--space-4) var(--space-5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-4)',
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 'var(--font-size-md)', color: 'var(--color-text-primary)' }}>
                       {referral.candidateName}
                     </div>
-                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-                      {referral.candidateEmail} &bull; {job?.title ?? 'Unknown Job'}
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                      {job?.title ?? 'Unknown Job'} &bull; Referred by {referrer?.name ?? 'Unknown'} &bull; {formatDate(referral.createdAt)}
                     </div>
-                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                      Referred by {referrer?.name ?? 'Unknown'} on {formatDate(referral.createdAt)}
-                    </div>
+                    {referral.candidateEmail && (
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                        {referral.candidateEmail}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <Badge variant={getStatusVariant(referral.status)}>{referral.status}</Badge>
-                    <Select
-                      value={referral.status}
-                      onChange={(v) => updateReferral(referral.id, { status: v as ReferralStatus })}
-                      options={REFERRAL_STATUS_OPTIONS}
-                    />
-                    <button
-                      style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--font-size-sm)' }}
-                      onClick={() => deleteReferral(referral.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  <Badge variant={STATUS_VARIANTS[referral.status]}>{referral.status}</Badge>
+                  <Select
+                    value={referral.status}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      updateReferral(referral.id, { status: e.target.value as ReferralStatus })
+                    }
+                  >
+                    {(['pending', 'reviewing', 'hired', 'rejected'] as ReferralStatus[]).map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </Select>
+                  <Button size="sm" variant="ghost" onClick={() => deleteReferral(referral.id)} title="Delete">
+                    <Trash2 size={14} />
+                  </Button>
                 </div>
               );
             })}
@@ -136,37 +122,20 @@ export default function ReferralsPage() {
         )}
       </div>
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Referral">
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <Input
-            label="Candidate Name"
-            value={form.candidateName}
-            onChange={(e) => setForm({ ...form, candidateName: e.target.value })}
-            required
-          />
-          <Input
-            label="Candidate Email"
-            type="email"
-            value={form.candidateEmail}
-            onChange={(e) => setForm({ ...form, candidateEmail: e.target.value })}
-            required
-          />
-          <Select
-            label="Job"
-            value={form.jobId}
-            onChange={(v) => setForm({ ...form, jobId: v })}
-            options={jobOptions}
-          />
-          <Input
-            label="Notes"
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          />
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Referral" size="md">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <Input label="Candidate Name *" {...field('candidateName')} />
+          <Input label="Candidate Email" type="email" {...field('candidateEmail')} />
+          <Select label="Job *" {...field('jobId')}>
+            <option value="">Select job</option>
+            {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
+          </Select>
+          <Input label="Notes" {...field('notes')} />
           <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
             <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button type="submit">Submit Referral</Button>
+            <Button onClick={handleSubmit}>Submit Referral</Button>
           </div>
-        </form>
+        </div>
       </Modal>
     </div>
   );
