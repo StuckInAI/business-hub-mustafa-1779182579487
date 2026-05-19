@@ -1,214 +1,165 @@
-import { useState, useCallback } from 'react';
-import { loadFromStorage, saveToStorage } from '@/lib/storage';
+import { useState } from 'react';
+import { loadState, saveState } from '@/lib/storage';
 import { seedData } from '@/lib/seedData';
 import type {
+  StoreState,
   Job,
   Candidate,
   Application,
   Interview,
   Requisition,
   Referral,
-  User,
   UserRole,
 } from '@/types';
 
-const STORAGE_KEYS = {
-  jobs: 'ats_jobs',
-  candidates: 'ats_candidates',
-  applications: 'ats_applications',
-  interviews: 'ats_interviews',
-  requisitions: 'ats_requisitions',
-  referrals: 'ats_referrals',
-  currentUser: 'ats_current_user',
-};
-
-function generateId(): string {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-}
-
-function now(): string {
-  return new Date().toISOString();
+function getInitialState(): StoreState {
+  const saved = loadState();
+  if (saved) return saved;
+  return seedData;
 }
 
 export function useStore() {
-  const [jobs, setJobs] = useState<Job[]>(() =>
-    loadFromStorage(STORAGE_KEYS.jobs, seedData.jobs)
-  );
-  const [candidates, setCandidates] = useState<Candidate[]>(() =>
-    loadFromStorage(STORAGE_KEYS.candidates, seedData.candidates)
-  );
-  const [applications, setApplications] = useState<Application[]>(() =>
-    loadFromStorage(STORAGE_KEYS.applications, seedData.applications)
-  );
-  const [interviews, setInterviews] = useState<Interview[]>(() =>
-    loadFromStorage(STORAGE_KEYS.interviews, seedData.interviews)
-  );
-  const [requisitions, setRequisitions] = useState<Requisition[]>(() =>
-    loadFromStorage(STORAGE_KEYS.requisitions, seedData.requisitions)
-  );
-  const [referrals, setReferrals] = useState<Referral[]>(() =>
-    loadFromStorage(STORAGE_KEYS.referrals, seedData.referrals)
-  );
-  const [currentUser, setCurrentUser] = useState<User>(() =>
-    loadFromStorage(STORAGE_KEYS.currentUser, seedData.users[0])
-  );
+  const [state, setState] = useState<StoreState>(getInitialState);
 
-  // ---- Jobs ----
-  const addJob = useCallback((job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newJob: Job = { ...job, id: generateId(), createdAt: now(), updatedAt: now() };
-    setJobs((prev) => {
-      const updated = [newJob, ...prev];
-      saveToStorage(STORAGE_KEYS.jobs, updated);
-      return updated;
+  function update(next: Partial<StoreState>) {
+    setState((prev) => {
+      const merged = { ...prev, ...next };
+      saveState(merged);
+      return merged;
     });
-  }, []);
+  }
 
-  const updateJob = useCallback((id: string, updates: Partial<Job>) => {
-    setJobs((prev) => {
-      const updated = prev.map((j) => (j.id === id ? { ...j, ...updates, updatedAt: now() } : j));
-      saveToStorage(STORAGE_KEYS.jobs, updated);
-      return updated;
-    });
-  }, []);
+  function switchRole(role: UserRole) {
+    const user = state.users.find((u) => u.role === role) || {
+      ...state.currentUser,
+      role,
+    };
+    update({ currentUser: user });
+  }
 
-  const deleteJob = useCallback((id: string) => {
-    setJobs((prev) => {
-      const updated = prev.filter((j) => j.id !== id);
-      saveToStorage(STORAGE_KEYS.jobs, updated);
-      return updated;
-    });
-  }, []);
+  function addJob(job: Omit<Job, 'id' | 'createdAt'>) {
+    const newJob: Job = {
+      ...job,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    update({ jobs: [...state.jobs, newJob] });
+  }
 
-  // ---- Candidates ----
-  const addCandidate = useCallback((candidate: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newCandidate: Candidate = { ...candidate, id: generateId(), createdAt: now(), updatedAt: now() };
-    setCandidates((prev) => {
-      const updated = [newCandidate, ...prev];
-      saveToStorage(STORAGE_KEYS.candidates, updated);
-      return updated;
+  function updateJob(id: string, patch: Partial<Job>) {
+    update({
+      jobs: state.jobs.map((j) => (j.id === id ? { ...j, ...patch } : j)),
     });
-  }, []);
+  }
 
-  const updateCandidate = useCallback((id: string, updates: Partial<Candidate>) => {
-    setCandidates((prev) => {
-      const updated = prev.map((c) => (c.id === id ? { ...c, ...updates, updatedAt: now() } : c));
-      saveToStorage(STORAGE_KEYS.candidates, updated);
-      return updated;
-    });
-  }, []);
+  function deleteJob(id: string) {
+    update({ jobs: state.jobs.filter((j) => j.id !== id) });
+  }
 
-  const updateCandidateStatus = useCallback((id: string, status: Candidate['status']) => {
-    setCandidates((prev) => {
-      const updated = prev.map((c) => (c.id === id ? { ...c, status, updatedAt: now() } : c));
-      saveToStorage(STORAGE_KEYS.candidates, updated);
-      return updated;
-    });
-  }, []);
+  function addCandidate(candidate: Omit<Candidate, 'id' | 'createdAt'>) {
+    const newCandidate: Candidate = {
+      ...candidate,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    update({ candidates: [...state.candidates, newCandidate] });
+  }
 
-  // ---- Applications ----
-  const addApplication = useCallback((application: Omit<Application, 'id' | 'appliedAt' | 'updatedAt'>) => {
-    const newApp: Application = { ...application, id: generateId(), appliedAt: now(), updatedAt: now() };
-    setApplications((prev) => {
-      const updated = [newApp, ...prev];
-      saveToStorage(STORAGE_KEYS.applications, updated);
-      return updated;
+  function updateCandidate(id: string, patch: Partial<Candidate>) {
+    update({
+      candidates: state.candidates.map((c) => (c.id === id ? { ...c, ...patch } : c)),
     });
-  }, []);
+  }
 
-  const updateApplicationStage = useCallback((id: string, stage: Application['stage']) => {
-    setApplications((prev) => {
-      const updated = prev.map((a) => (a.id === id ? { ...a, stage, updatedAt: now() } : a));
-      saveToStorage(STORAGE_KEYS.applications, updated);
-      return updated;
-    });
-  }, []);
+  function deleteCandidate(id: string) {
+    update({ candidates: state.candidates.filter((c) => c.id !== id) });
+  }
 
-  // ---- Interviews ----
-  const addInterview = useCallback((interview: Omit<Interview, 'id' | 'createdAt'>) => {
-    const newInterview: Interview = { ...interview, id: generateId(), createdAt: now() };
-    setInterviews((prev) => {
-      const updated = [newInterview, ...prev];
-      saveToStorage(STORAGE_KEYS.interviews, updated);
-      return updated;
-    });
-  }, []);
+  function addApplication(application: Omit<Application, 'id' | 'createdAt'>) {
+    const newApp: Application = {
+      ...application,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    update({ applications: [...state.applications, newApp] });
+  }
 
-  const updateInterview = useCallback((id: string, updates: Partial<Interview>) => {
-    setInterviews((prev) => {
-      const updated = prev.map((i) => (i.id === id ? { ...i, ...updates } : i));
-      saveToStorage(STORAGE_KEYS.interviews, updated);
-      return updated;
+  function updateApplication(id: string, patch: Partial<Application>) {
+    update({
+      applications: state.applications.map((a) =>
+        a.id === id ? { ...a, ...patch } : a
+      ),
     });
-  }, []);
+  }
 
-  // ---- Requisitions ----
-  const addRequisition = useCallback((req: Omit<Requisition, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newReq: Requisition = { ...req, id: generateId(), createdAt: now(), updatedAt: now() };
-    setRequisitions((prev) => {
-      const updated = [newReq, ...prev];
-      saveToStorage(STORAGE_KEYS.requisitions, updated);
-      return updated;
-    });
-  }, []);
+  function addInterview(interview: Omit<Interview, 'id' | 'createdAt'>) {
+    const newInterview: Interview = {
+      ...interview,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    update({ interviews: [...state.interviews, newInterview] });
+  }
 
-  const updateRequisition = useCallback((id: string, updates: Partial<Requisition>) => {
-    setRequisitions((prev) => {
-      const updated = prev.map((r) => (r.id === id ? { ...r, ...updates, updatedAt: now() } : r));
-      saveToStorage(STORAGE_KEYS.requisitions, updated);
-      return updated;
+  function updateInterview(id: string, patch: Partial<Interview>) {
+    update({
+      interviews: state.interviews.map((i) =>
+        i.id === id ? { ...i, ...patch } : i
+      ),
     });
-  }, []);
+  }
 
-  // ---- Referrals ----
-  const addReferral = useCallback((referral: Omit<Referral, 'id' | 'createdAt'>) => {
-    const newReferral: Referral = { ...referral, id: generateId(), createdAt: now() };
-    setReferrals((prev) => {
-      const updated = [newReferral, ...prev];
-      saveToStorage(STORAGE_KEYS.referrals, updated);
-      return updated;
-    });
-  }, []);
+  function addRequisition(requisition: Omit<Requisition, 'id' | 'createdAt' | 'updatedAt'>) {
+    const newReq: Requisition = {
+      ...requisition,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    update({ requisitions: [...state.requisitions, newReq] });
+  }
 
-  // ---- User / Role ----
-  const switchRole = useCallback((role: UserRole) => {
-    setCurrentUser((prev) => {
-      const updated = { ...prev, role };
-      saveToStorage(STORAGE_KEYS.currentUser, updated);
-      return updated;
+  function updateRequisition(id: string, patch: Partial<Requisition>) {
+    update({
+      requisitions: state.requisitions.map((r) =>
+        r.id === id ? { ...r, ...patch, updatedAt: new Date().toISOString() } : r
+      ),
     });
-  }, []);
+  }
+
+  function addReferral(referral: Omit<Referral, 'id' | 'createdAt'>) {
+    const newReferral: Referral = {
+      ...referral,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    update({ referrals: [...state.referrals, newReferral] });
+  }
+
+  function updateReferral(id: string, patch: Partial<Referral>) {
+    update({
+      referrals: state.referrals.map((r) =>
+        r.id === id ? { ...r, ...patch } : r
+      ),
+    });
+  }
 
   return {
-    // state
-    jobs,
-    candidates,
-    applications,
-    interviews,
-    requisitions,
-    referrals,
-    currentUser,
-    // job actions
+    ...state,
+    switchRole,
     addJob,
     updateJob,
     deleteJob,
-    // candidate actions
     addCandidate,
     updateCandidate,
-    updateCandidateStatus,
-    // application actions
+    deleteCandidate,
     addApplication,
-    updateApplicationStage,
-    // interview actions
+    updateApplication,
     addInterview,
     updateInterview,
-    // requisition actions
     addRequisition,
     updateRequisition,
-    // referral actions
     addReferral,
-    // user actions
-    switchRole,
+    updateReferral,
   };
 }
-
-export type StoreType = ReturnType<typeof useStore>;

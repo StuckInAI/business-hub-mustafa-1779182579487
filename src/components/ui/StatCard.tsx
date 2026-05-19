@@ -1,26 +1,23 @@
 import styles from './StatCard.module.css';
 
-type TrendDir = 'up' | 'down' | 'neutral';
-
-type StatCardProps = {
+export type StatCardProps = {
   title: string;
   value: string | number;
   icon?: React.ReactNode;
-  trend?: { value: string; direction: TrendDir };
+  color?: string;
 };
 
-export default function StatCard({ title, value, icon, trend }: StatCardProps) {
+export default function StatCard({ title, value, icon, color }: StatCardProps) {
   return (
     <div className={styles.card}>
-      {icon && <div className={styles.iconBox}>{icon}</div>}
-      <div className={styles.info}>
+      {icon && (
+        <div className={styles.iconWrapper} data-color={color}>
+          {icon}
+        </div>
+      )}
+      <div className={styles.content}>
         <div className={styles.value}>{value}</div>
         <div className={styles.title}>{title}</div>
-        {trend && (
-          <div className={`${styles.trend} ${styles[trend.direction]}`}>
-            {trend.value}
-          </div>
-        )}
       </div>
     </div>
   );

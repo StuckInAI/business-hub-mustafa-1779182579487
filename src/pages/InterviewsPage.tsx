@@ -1,143 +1,142 @@
 import { useState } from 'react';
+import { Calendar } from 'lucide-react';
 import { useStoreContext } from '@/context/StoreContext';
 import PageHeader from '@/components/ui/PageHeader';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import Badge from '@/components/ui/Badge';
+import EmptyState from '@/components/ui/EmptyState';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import EmptyState from '@/components/ui/EmptyState';
-import { Calendar, Plus, Clock, User } from 'lucide-react';
 import { formatDate, getStatusVariant } from '@/lib/utils';
 import type { InterviewType } from '@/types';
 
+type FormState = {
+  jobId: string;
+  candidateId: string;
+  type: InterviewType;
+  scheduledAt: string;
+  duration: number;
+  interviewers: string;
+  notes: string;
+};
+
 export default function InterviewsPage() {
-  const { interviews, candidates, jobs, applications, addInterview } = useStoreContext();
+  const { interviews, jobs, candidates, addInterview, currentUser } = useStoreContext();
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({
-    applicationId: '',
-    type: 'phone_screen' as InterviewType,
+  const [form, setForm] = useState<FormState>({
+    jobId: '',
+    candidateId: '',
+    type: 'phone',
     scheduledAt: '',
     duration: 60,
     interviewers: '',
     notes: '',
   });
 
-  const handleSubmit = () => {
-    if (!form.applicationId || !form.scheduledAt) return;
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     addInterview({
-      applicationId: form.applicationId,
+      jobId: form.jobId,
+      candidateId: form.candidateId,
       type: form.type,
+      status: 'scheduled',
       scheduledAt: form.scheduledAt,
       duration: form.duration,
       interviewers: form.interviewers.split(',').map((s) => s.trim()).filter(Boolean),
-      status: 'scheduled',
-      notes: form.notes,
-      feedback: '',
-      rating: null,
+      notes: form.notes || undefined,
     });
     setShowModal(false);
-    setForm({ applicationId: '', type: 'phone_screen', scheduledAt: '', duration: 60, interviewers: '', notes: '' });
-  };
-
-  const getAppDetails = (applicationId: string) => {
-    const app = applications.find((a) => a.id === applicationId);
-    if (!app) return null;
-    const candidate = candidates.find((c) => c.id === app.candidateId);
-    const job = jobs.find((j) => j.id === app.jobId);
-    return { candidate, job };
-  };
+    setForm({ jobId: '', candidateId: '', type: 'phone', scheduledAt: '', duration: 60, interviewers: '', notes: '' });
+  }
 
   return (
     <div>
       <PageHeader
         title="Interviews"
-        subtitle={`${interviews.length} scheduled`}
+        subtitle="Manage scheduled interviews"
         actions={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} /> Schedule Interview
-          </Button>
+          <Button onClick={() => setShowModal(true)}>Schedule Interview</Button>
         }
       />
-      <div style={{ padding: '1.5rem 2rem' }}>
+
+      <div style={{ padding: '2rem' }}>
         {interviews.length === 0 ? (
           <EmptyState
-            icon={<Calendar size={32} />}
+            icon={<Calendar size={28} />}
             title="No interviews scheduled"
             description="Schedule your first interview to get started."
-            action={<Button onClick={() => setShowModal(true)}><Plus size={16} /> Schedule Interview</Button>}
+            action={<Button onClick={() => setShowModal(true)}>Schedule Interview</Button>}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {interviews.map((interview) => {
-              const details = getAppDetails(interview.applicationId);
-              return (
-                <div key={interview.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem 1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '1rem' }}>
-                        {details?.candidate?.name || 'Unknown'} — {details?.job?.title || 'Unknown Job'}
+          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Candidate / Job</th>
+                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Type</th>
+                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Date</th>
+                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Duration</th>
+                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {interviews.map((interview) => {
+                const candidate = candidates.find((c) => c.id === interview.candidateId);
+                const job = jobs.find((j) => j.id === interview.jobId);
+                return (
+                  <tr key={interview.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '1rem 1.5rem' }}>
+                      <div style={{ fontWeight: 600 }}>
+                        {candidate ? `${candidate.firstName} ${candidate.lastName}` : 'Unknown'}
                       </div>
-                      <div style={{ display: 'flex', gap: '1rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-                          <Clock size={13} /> {formatDate(interview.scheduledAt)}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-                          <Calendar size={13} /> {interview.duration} min
-                        </span>
-                        {interview.interviewers.length > 0 && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-                            <User size={13} /> {interview.interviewers.join(', ')}
-                          </span>
-                        )}
+                      <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                        {job?.title || 'Unknown Job'}
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <Badge variant="info">{interview.type.replace(/_/g, ' ')}</Badge>
+                    </td>
+                    <td style={{ padding: '1rem 1.5rem', textTransform: 'capitalize' }}>{interview.type}</td>
+                    <td style={{ padding: '1rem 1.5rem' }}>{formatDate(interview.scheduledAt)}</td>
+                    <td style={{ padding: '1rem 1.5rem' }}>{interview.duration} min</td>
+                    <td style={{ padding: '1rem 1.5rem' }}>
                       <Badge variant={getStatusVariant(interview.status)}>{interview.status}</Badge>
-                    </div>
-                  </div>
-                  {interview.notes && (
-                    <div style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: 'var(--color-text-secondary)', borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem' }}>
-                      {interview.notes}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Schedule Interview">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <Select
-            label="Application"
-            value={form.applicationId}
-            onChange={(e) => setForm({ ...form, applicationId: e.target.value })}
-            options={[
-              { value: '', label: 'Select application...' },
-              ...applications.map((app) => {
-                const candidate = candidates.find((c) => c.id === app.candidateId);
-                const job = jobs.find((j) => j.id === app.jobId);
-                return { value: app.id, label: `${candidate?.name || '?'} — ${job?.title || '?'}` };
-              }),
-            ]}
+            label="Job"
+            value={form.jobId}
+            onChange={(v) => setForm({ ...form, jobId: v })}
+            options={jobs.map((j) => ({ value: j.id, label: j.title }))}
+            placeholder="Select job"
+          />
+          <Select
+            label="Candidate"
+            value={form.candidateId}
+            onChange={(v) => setForm({ ...form, candidateId: v })}
+            options={candidates.map((c) => ({ value: c.id, label: `${c.firstName} ${c.lastName}` }))}
+            placeholder="Select candidate"
           />
           <Select
             label="Interview Type"
             value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value as InterviewType })}
+            onChange={(v) => setForm({ ...form, type: v as InterviewType })}
             options={[
-              { value: 'phone_screen', label: 'Phone Screen' },
+              { value: 'phone', label: 'Phone Screen' },
+              { value: 'video', label: 'Video' },
+              { value: 'onsite', label: 'On-site' },
               { value: 'technical', label: 'Technical' },
-              { value: 'behavioral', label: 'Behavioral' },
-              { value: 'panel', label: 'Panel' },
-              { value: 'final', label: 'Final' },
+              { value: 'hr', label: 'HR' },
             ]}
           />
           <Input
-            label="Date & Time"
+            label="Scheduled Date & Time"
             type="datetime-local"
             value={form.scheduledAt}
             onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
@@ -153,11 +152,16 @@ export default function InterviewsPage() {
             value={form.interviewers}
             onChange={(e) => setForm({ ...form, interviewers: e.target.value })}
           />
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+          <Input
+            label="Notes"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          />
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
             <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSubmit}>Schedule</Button>
+            <Button type="submit">Schedule</Button>
           </div>
-        </div>
+        </form>
       </Modal>
     </div>
   );
