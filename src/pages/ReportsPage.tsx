@@ -1,99 +1,99 @@
 import { useStoreContext } from '@/context/StoreContext';
 import PageHeader from '@/components/ui/PageHeader';
 import StatCard from '@/components/ui/StatCard';
-import { BarChart3, Users, Briefcase, TrendingUp } from 'lucide-react';
+import { BarChart3, Briefcase, Users, Calendar, Gift } from 'lucide-react';
 
 export default function ReportsPage() {
-  const { jobs, candidates, applications, interviews } = useStoreContext();
+  const { jobs, candidates, applications, interviews, referrals } = useStoreContext();
 
   const openJobs = jobs.filter((j) => j.status === 'open').length;
-  const closedJobs = jobs.filter((j) => j.status === 'closed').length;
   const totalCandidates = candidates.length;
-  const hiredCandidates = candidates.filter((c) => c.status === 'hired').length;
-  const rejectedCandidates = candidates.filter((c) => c.status === 'rejected').length;
-  const conversionRate = totalCandidates > 0 ? Math.round((hiredCandidates / totalCandidates) * 100) : 0;
+  const totalApplications = applications.length;
+  const scheduledInterviews = interviews.filter((i) => i.status === 'scheduled').length;
+  const totalReferrals = referrals.length;
+  const hiredReferrals = referrals.filter((r) => r.status === 'hired').length;
 
   const applicationsByStatus = [
-    { label: 'Applied', count: applications.filter((a) => a.status === 'applied').length },
-    { label: 'Reviewing', count: applications.filter((a) => a.status === 'reviewing').length },
-    { label: 'Interview', count: applications.filter((a) => a.status === 'interview').length },
-    { label: 'Offer', count: applications.filter((a) => a.status === 'offer').length },
-    { label: 'Hired', count: applications.filter((a) => a.status === 'hired').length },
-    { label: 'Rejected', count: applications.filter((a) => a.status === 'rejected').length },
-  ];
+    'applied', 'screening', 'interview', 'offer', 'hired', 'rejected'
+  ].map((status) => ({
+    status,
+    count: applications.filter((a) => a.status === status).length,
+  }));
 
-  const completedInterviews = interviews.filter((i) => i.status === 'completed').length;
-  const scheduledInterviews = interviews.filter((i) => i.status === 'scheduled').length;
+  const jobsByDepartment = jobs.reduce<Record<string, number>>((acc, job) => {
+    acc[job.department] = (acc[job.department] || 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div>
-      <PageHeader title="Reports" subtitle="Overview of your recruiting metrics" />
-      <div style={{ padding: '1.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+      <PageHeader
+        title="Reports"
+        subtitle="Analytics and insights"
+      />
+      <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
           <StatCard title="Open Jobs" value={openJobs} icon={<Briefcase size={20} />} />
           <StatCard title="Total Candidates" value={totalCandidates} icon={<Users size={20} />} />
-          <StatCard title="Hired" value={hiredCandidates} icon={<TrendingUp size={20} />} />
-          <StatCard title="Conversion Rate" value={`${conversionRate}%`} icon={<BarChart3 size={20} />} />
+          <StatCard title="Total Applications" value={totalApplications} icon={<BarChart3 size={20} />} />
+          <StatCard title="Scheduled Interviews" value={scheduledInterviews} icon={<Calendar size={20} />} />
+          <StatCard title="Total Referrals" value={totalReferrals} icon={<Gift size={20} />} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
-            <h3 style={{ fontWeight: 700, marginBottom: '1rem', fontSize: '1rem' }}>Applications by Stage</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {applicationsByStatus.map(({ label, count }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ width: '80px', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>{label}</span>
-                  <div style={{ flex: 1, background: 'var(--color-bg)', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
-                    <div style={{ width: `${applications.length > 0 ? (count / applications.length) * 100 : 0}%`, background: 'var(--color-primary)', height: '100%', borderRadius: '999px' }} />
-                  </div>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, width: '24px', textAlign: 'right' }}>{count}</span>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: 24, border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontWeight: 700, marginBottom: 16 }}>Applications by Status</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {applicationsByStatus.map(({ status, count }) => (
+              <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 100, fontSize: 13, color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>{status}</div>
+                <div style={{ flex: 1, background: 'var(--color-bg)', borderRadius: 4, height: 16, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: totalApplications > 0 ? `${(count / totalApplications) * 100}%` : '0%',
+                      background: 'var(--color-primary)',
+                      borderRadius: 4,
+                      transition: 'width 0.3s',
+                    }}
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
-            <h3 style={{ fontWeight: 700, marginBottom: '1rem', fontSize: '1rem' }}>Candidate Pipeline</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[
-                { label: 'New', count: candidates.filter(c => c.status === 'new').length },
-                { label: 'Screening', count: candidates.filter(c => c.status === 'screening').length },
-                { label: 'Interview', count: candidates.filter(c => c.status === 'interview').length },
-                { label: 'Offer', count: candidates.filter(c => c.status === 'offer').length },
-                { label: 'Hired', count: hiredCandidates },
-                { label: 'Rejected', count: rejectedCandidates },
-              ].map(({ label, count }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ width: '80px', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>{label}</span>
-                  <div style={{ flex: 1, background: 'var(--color-bg)', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
-                    <div style={{ width: `${totalCandidates > 0 ? (count / totalCandidates) * 100 : 0}%`, background: 'var(--color-secondary)', height: '100%', borderRadius: '999px' }} />
-                  </div>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, width: '24px', textAlign: 'right' }}>{count}</span>
-                </div>
-              ))}
-            </div>
+                <div style={{ width: 30, fontSize: 13, fontWeight: 600, textAlign: 'right' }}>{count}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
-          <h3 style={{ fontWeight: 700, marginBottom: '1rem', fontSize: '1rem' }}>Interview Summary</h3>
-          <div style={{ display: 'flex', gap: '2rem' }}>
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>{interviews.length}</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Total Interviews</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-secondary)' }}>{completedInterviews}</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Completed</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-warning)' }}>{scheduledInterviews}</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Scheduled</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>{closedJobs}</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Closed Jobs</div>
-            </div>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: 24, border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontWeight: 700, marginBottom: 16 }}>Jobs by Department</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {Object.entries(jobsByDepartment).map(([dept, count]) => (
+              <div key={dept} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 160, fontSize: 13, color: 'var(--color-text-secondary)' }}>{dept}</div>
+                <div style={{ flex: 1, background: 'var(--color-bg)', borderRadius: 4, height: 16, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: jobs.length > 0 ? `${(count / jobs.length) * 100}%` : '0%',
+                      background: 'var(--color-secondary)',
+                      borderRadius: 4,
+                    }}
+                  />
+                </div>
+                <div style={{ width: 30, fontSize: 13, fontWeight: 600, textAlign: 'right' }}>{count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: 24, border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontWeight: 700, marginBottom: 16 }}>Referral Conversion</h3>
+          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
+            <p>{hiredReferrals} out of {totalReferrals} referrals converted to hires.</p>
+            {totalReferrals > 0 && (
+              <p style={{ marginTop: 8 }}>
+                Conversion rate: <strong>{Math.round((hiredReferrals / totalReferrals) * 100)}%</strong>
+              </p>
+            )}
           </div>
         </div>
       </div>

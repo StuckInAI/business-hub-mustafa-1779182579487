@@ -4,25 +4,25 @@ import styles from './Select.module.css';
 export type SelectProps = {
   label?: string;
   value?: string;
-  onChange?: (value: string) => void;
-  options: { label: string; value: string }[];
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   error?: string;
   className?: string;
   name?: string;
   required?: boolean;
   disabled?: boolean;
+  children?: React.ReactNode;
 };
 
 export default function Select({
   label,
   value,
   onChange,
-  options,
   error,
   className,
   name,
   required,
   disabled,
+  children,
 }: SelectProps) {
   return (
     <div className={cn(styles.wrapper, className)}>
@@ -35,17 +35,12 @@ export default function Select({
       <select
         className={cn(styles.select, error ? styles.hasError : '')}
         value={value}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={onChange}
         name={name}
         required={required}
         disabled={disabled}
       >
-        <option value="">Select...</option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
+        {children}
       </select>
       {error && <span className={styles.error}>{error}</span>}
     </div>
