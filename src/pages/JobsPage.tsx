@@ -1,18 +1,32 @@
 import { useState } from 'react';
-import { Briefcase, Plus, Search } from 'lucide-react';
+import { Briefcase, Plus, Search, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStoreContext } from '@/context/StoreContext';
 import PageHeader from '@/components/ui/PageHeader';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import EmptyState from '@/components/ui/EmptyState';
-import { getStatusVariant } from '@/lib/utils';
-import type { JobStatus, JobType } from '@/types';
+import Badge from '@/components/ui/Badge';
+import { formatDate } from '@/lib/utils';
+import type { JobType, JobStatus } from '@/types';
 
-type JobFormState = {
+const JOB_TYPE_OPTIONS: { label: string; value: JobType }[] = [
+  { label: 'Full Time', value: 'full_time' },
+  { label: 'Part Time', value: 'part_time' },
+  { label: 'Contract', value: 'contract' },
+  { label: 'Internship', value: 'internship' },
+];
+
+const JOB_STATUS_OPTIONS: { label: string; value: JobStatus }[] = [
+  { label: 'Draft', value: 'draft' },
+  { label: 'Open', value: 'open' },
+  { label: 'Closed', value: 'closed' },
+  { label: 'On Hold', value: 'on_hold' },
+];
+
+type FormState = {
   title: string;
   department: string;
   location: string;
@@ -20,22 +34,28 @@ type JobFormState = {
   status: JobStatus;
   description: string;
   requirements: string;
+  salaryMin: string;
+  salaryMax: string;
+};
+
+const defaultForm: FormState = {
+  title: '',
+  department: '',
+  location: '',
+  type: 'full_time',
+  status: 'open',
+  description: '',
+  requirements: '',
+  salaryMin: '',
+  salaryMax: '',
 };
 
 export default function JobsPage() {
-  const { jobs, addJob, applications } = useStoreContext();
+  const { jobs, candidates, addJob, deleteJob } = useStoreContext();
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState<FormState>(defaultForm);
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState<JobFormState>({
-    title: '',
-    department: '',
-    location: '',
-    type: 'full_time',
-    status: 'open',
-    description: '',
-    requirements: '',
-  });
 
   const filtered = jobs.filter(
     (j) =>
@@ -53,28 +73,39 @@ export default function JobsPage() {
       status: form.status,
       description: form.description,
       requirements: form.requirements.split('\n').filter(Boolean),
-      postedAt: new Date().toISOString(),
       hiringManagerId: '',
-      createdAt: new Date().toISOString(),
+      salary: form.salaryMin
+        ? { min: Number(form.salaryMin), max: Number(form.salaryMax), currency: 'USD' }
+        : undefined,
     });
     setShowModal(false);
-    setForm({ title: '', department: '', location: '', type: 'full_time', status: 'open', description: '', requirements: '' });
+    setForm(defaultForm);
+  }
+
+  function getStatusVariant(status: JobStatus) {
+    switch (status) {
+      case 'open': return 'success';
+      case 'closed': return 'danger';
+      case 'draft': return 'muted';
+      case 'on_hold': return 'warning';
+      default: return 'muted';
+    }
   }
 
   return (
     <div>
       <PageHeader
         title="Jobs"
-        subtitle={`${jobs.length} open position${jobs.length !== 1 ? 's' : ''}`}
+        subtitle={`${jobs.length} total positions`}
         actions={
           <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} /> Post Job
+            <Plus size={16} /> Add Job
           </Button>
         }
       />
 
-      <div style={{ padding: '2rem' }}>
-        <div style={{ marginBottom: '1.5rem', maxWidth: 400 }}>
+      <div style={{ padding: 'var(--space-6) var(--space-8)' }}>
+        <div style={{ marginBottom: 'var(--space-4)' }}>
           <Input
             placeholder="Search jobs..."
             value={search}
@@ -86,41 +117,46 @@ export default function JobsPage() {
           <EmptyState
             icon={<Briefcase size={28} />}
             title="No jobs found"
-            description="Post your first job opening to get started."
-            action={<Button onClick={() => setShowModal(true)}><Plus size={16} /> Post Job</Button>}
+            description="Create your first job posting to get started."
+            action={<Button onClick={() => setShowModal(true)}>Add Job</Button>}
           />
         ) : (
-          <div style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {filtered.map((job) => {
-              const appCount = applications.filter((a) => a.jobId === job.id).length;
+              const appCount = candidates.filter((c) => c.jobId === job.id).length;
               return (
                 <div
                   key={job.id}
                   style={{
                     background: 'var(--color-surface)',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: '1.5rem',
-                    boxShadow: 'var(--shadow-sm)',
-                    cursor: 'pointer',
                     border: '1px solid var(--color-border)',
-                    transition: 'box-shadow 0.15s',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 'var(--space-4) var(--space-5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-4)',
+                    justifyContent: 'space-between',
                   }}
-                  onClick={() => navigate(`/jobs/${job.id}`)}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-                    <div>
-                      <h3 style={{ fontWeight: 700, fontSize: 'var(--font-size-md)', marginBottom: '0.25rem' }}>{job.title}</h3>
-                      <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-                        {job.department} · {job.location}
-                      </p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 2 }}>
+                      {job.title}
                     </div>
-                    <Badge variant={getStatusVariant(job.status)}>{job.status}</Badge>
-                  </div>
-                  <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Badge variant="muted">{job.type.replace('_', ' ')}</Badge>
-                    <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                      {job.department} &bull; {job.location} &bull; Posted {formatDate(job.postedAt)}
+                    </div>
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginTop: 2 }}>
                       {appCount} applicant{appCount !== 1 ? 's' : ''}
-                    </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <Badge variant={getStatusVariant(job.status)}>{job.status.replace('_', ' ')}</Badge>
+                    <Button variant="ghost" size="sm" onClick={() => navigate(`/jobs/${job.id}`)} title="View">
+                      <Eye size={15} />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteJob(job.id)} title="Delete">
+                      <Trash2 size={15} />
+                    </Button>
                   </div>
                 </div>
               );
@@ -129,60 +165,30 @@ export default function JobsPage() {
         )}
       </div>
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Post New Job">
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input
-            label="Job Title"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-          />
-          <Input
-            label="Department"
-            value={form.department}
-            onChange={(e) => setForm({ ...form, department: e.target.value })}
-            required
-          />
-          <Input
-            label="Location"
-            value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
-          />
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Job">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <Input label="Job Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+          <Input label="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} required />
+          <Input label="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           <Select
-            label="Type"
+            label="Job Type"
             value={form.type}
             onChange={(v) => setForm({ ...form, type: v as JobType })}
-            options={[
-              { value: 'full_time', label: 'Full Time' },
-              { value: 'part_time', label: 'Part Time' },
-              { value: 'contract', label: 'Contract' },
-              { value: 'internship', label: 'Internship' },
-            ]}
+            options={JOB_TYPE_OPTIONS}
           />
           <Select
             label="Status"
             value={form.status}
             onChange={(v) => setForm({ ...form, status: v as JobStatus })}
-            options={[
-              { value: 'open', label: 'Open' },
-              { value: 'draft', label: 'Draft' },
-              { value: 'on_hold', label: 'On Hold' },
-              { value: 'closed', label: 'Closed' },
-            ]}
+            options={JOB_STATUS_OPTIONS}
           />
-          <Input
-            label="Description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-          <Input
-            label="Requirements (one per line)"
-            value={form.requirements}
-            onChange={(e) => setForm({ ...form, requirements: e.target.value })}
-          />
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+          <Input label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <Input label="Requirements (one per line)" value={form.requirements} onChange={(e) => setForm({ ...form, requirements: e.target.value })} />
+          <Input label="Min Salary" type="number" value={form.salaryMin} onChange={(e) => setForm({ ...form, salaryMin: e.target.value })} />
+          <Input label="Max Salary" type="number" value={form.salaryMax} onChange={(e) => setForm({ ...form, salaryMax: e.target.value })} />
+          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
             <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button type="submit">Post Job</Button>
+            <Button type="submit">Save</Button>
           </div>
         </form>
       </Modal>

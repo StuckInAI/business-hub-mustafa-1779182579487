@@ -1,135 +1,173 @@
 import { useState } from 'react';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
 import { useStoreContext } from '@/context/StoreContext';
 import PageHeader from '@/components/ui/PageHeader';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import Badge from '@/components/ui/Badge';
-import EmptyState from '@/components/ui/EmptyState';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import { formatDate, getStatusVariant } from '@/lib/utils';
+import EmptyState from '@/components/ui/EmptyState';
+import Badge from '@/components/ui/Badge';
+import { formatDate } from '@/lib/utils';
+import type { RequisitionStatus, RequisitionPriority } from '@/types';
+
+const PRIORITY_OPTIONS: { label: string; value: RequisitionPriority }[] = [
+  { label: 'Low', value: 'low' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'High', value: 'high' },
+];
+
+const STATUS_OPTIONS: { label: string; value: RequisitionStatus }[] = [
+  { label: 'Pending', value: 'pending' },
+  { label: 'Approved', value: 'approved' },
+  { label: 'Rejected', value: 'rejected' },
+  { label: 'Open', value: 'open' },
+];
 
 type FormState = {
-  jobTitle: string;
+  title: string;
   department: string;
-  headcount: number;
-  priority: 'low' | 'medium' | 'high';
-  justification: string;
+  headcount: string;
+  priority: RequisitionPriority;
+  status: RequisitionStatus;
+  notes: string;
+};
+
+const defaultForm: FormState = {
+  title: '',
+  department: '',
+  headcount: '1',
+  priority: 'medium',
+  status: 'pending',
+  notes: '',
 };
 
 export default function RequisitionsPage() {
-  const { requisitions, addRequisition, currentUser } = useStoreContext();
+  const { requisitions, currentUser, addRequisition, updateRequisition, deleteRequisition } = useStoreContext();
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState<FormState>({
-    jobTitle: '',
-    department: '',
-    headcount: 1,
-    priority: 'medium',
-    justification: '',
-  });
+  const [form, setForm] = useState<FormState>(defaultForm);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     addRequisition({
-      jobTitle: form.jobTitle,
+      title: form.title,
       department: form.department,
-      headcount: form.headcount,
+      headcount: Number(form.headcount),
       priority: form.priority,
-      status: 'pending',
-      requestedBy: currentUser.id,
-      justification: form.justification || undefined,
+      status: form.status,
+      requestedById: currentUser.id,
+      notes: form.notes,
     });
     setShowModal(false);
-    setForm({ jobTitle: '', department: '', headcount: 1, priority: 'medium', justification: '' });
+    setForm(defaultForm);
+  }
+
+  function getPriorityVariant(priority: RequisitionPriority) {
+    switch (priority) {
+      case 'high': return 'danger';
+      case 'medium': return 'warning';
+      case 'low': return 'success';
+      default: return 'muted';
+    }
+  }
+
+  function getStatusVariant(status: RequisitionStatus) {
+    switch (status) {
+      case 'approved': return 'success';
+      case 'rejected': return 'danger';
+      case 'pending': return 'warning';
+      case 'open': return 'info';
+      default: return 'muted';
+    }
   }
 
   return (
     <div>
       <PageHeader
         title="Requisitions"
-        subtitle="Job requisition management"
+        subtitle={`${requisitions.length} requisitions`}
         actions={
-          <Button onClick={() => setShowModal(true)}>New Requisition</Button>
+          <Button onClick={() => setShowModal(true)}>
+            <Plus size={16} /> New Requisition
+          </Button>
         }
       />
 
-      <div style={{ padding: '2rem' }}>
+      <div style={{ padding: 'var(--space-6) var(--space-8)' }}>
         {requisitions.length === 0 ? (
           <EmptyState
             icon={<ClipboardList size={28} />}
             title="No requisitions"
-            description="Create a job requisition to start the hiring process."
+            description="Create a hiring requisition to begin the approval process."
             action={<Button onClick={() => setShowModal(true)}>New Requisition</Button>}
           />
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Job Title</th>
-                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Department</th>
-                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Priority</th>
-                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Status</th>
-                <th style={{ padding: '1rem 1.5rem', textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requisitions.map((req) => (
-                <tr key={req.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>{req.jobTitle}</td>
-                  <td style={{ padding: '1rem 1.5rem' }}>{req.department}</td>
-                  <td style={{ padding: '1rem 1.5rem' }}>
-                    <Badge variant={req.priority === 'high' ? 'danger' : req.priority === 'medium' ? 'warning' : 'muted'}>
-                      {req.priority}
-                    </Badge>
-                  </td>
-                  <td style={{ padding: '1rem 1.5rem' }}>
-                    <Badge variant={getStatusVariant(req.status)}>{req.status}</Badge>
-                  </td>
-                  <td style={{ padding: '1rem 1.5rem' }}>{formatDate(req.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            {requisitions.map((req) => (
+              <div
+                key={req.id}
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: 'var(--space-4) var(--space-5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-4)',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{req.title}</div>
+                  <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                    {req.department} &bull; {req.headcount} headcount &bull; {formatDate(req.createdAt)}
+                  </div>
+                  {req.notes && (
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                      {req.notes}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <Badge variant={getPriorityVariant(req.priority)}>{req.priority}</Badge>
+                  <Badge variant={getStatusVariant(req.status)}>{req.status}</Badge>
+                  <Select
+                    value={req.status}
+                    onChange={(v) => updateRequisition(req.id, { status: v as RequisitionStatus })}
+                    options={STATUS_OPTIONS}
+                  />
+                  <button
+                    style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--font-size-sm)' }}
+                    onClick={() => deleteRequisition(req.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="New Requisition">
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input
-            label="Job Title"
-            value={form.jobTitle}
-            onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
-            required
-          />
-          <Input
-            label="Department"
-            value={form.department}
-            onChange={(e) => setForm({ ...form, department: e.target.value })}
-            required
-          />
-          <Input
-            label="Headcount"
-            type="number"
-            value={String(form.headcount)}
-            onChange={(e) => setForm({ ...form, headcount: Number(e.target.value) })}
-          />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+          <Input label="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} required />
+          <Input label="Headcount" type="number" value={form.headcount} onChange={(e) => setForm({ ...form, headcount: e.target.value })} />
           <Select
             label="Priority"
             value={form.priority}
-            onChange={(v) => setForm({ ...form, priority: v as 'low' | 'medium' | 'high' })}
-            options={[
-              { value: 'low', label: 'Low' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'high', label: 'High' },
-            ]}
+            onChange={(v) => setForm({ ...form, priority: v as RequisitionPriority })}
+            options={PRIORITY_OPTIONS}
           />
-          <Input
-            label="Justification"
-            value={form.justification}
-            onChange={(e) => setForm({ ...form, justification: e.target.value })}
+          <Select
+            label="Status"
+            value={form.status}
+            onChange={(v) => setForm({ ...form, status: v as RequisitionStatus })}
+            options={STATUS_OPTIONS}
           />
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+          <Input label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
             <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit">Submit</Button>
           </div>

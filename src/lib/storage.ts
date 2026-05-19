@@ -1,24 +1,19 @@
-export function getItem<T>(key: string, fallback: T): T {
+const STORAGE_KEY = 'ats_app_state';
+
+export function loadState<T>(defaultValue: T): T {
   try {
-    const raw = localStorage.getItem(key);
-    if (raw === null) return fallback;
-    return JSON.parse(raw) as T;
+    const serialized = localStorage.getItem(STORAGE_KEY);
+    if (!serialized) return defaultValue;
+    return JSON.parse(serialized) as T;
   } catch {
-    return fallback;
+    return defaultValue;
   }
 }
 
-export function setItem<T>(key: string, value: T): void {
+export function saveState<T>(state: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // ignore storage errors
-  }
-}
-
-export function removeItem(key: string): void {
-  try {
-    localStorage.removeItem(key);
+    const serialized = JSON.stringify(state);
+    localStorage.setItem(STORAGE_KEY, serialized);
   } catch {
     // ignore
   }
