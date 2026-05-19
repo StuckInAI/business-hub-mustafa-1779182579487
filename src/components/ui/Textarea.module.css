@@ -25,11 +25,18 @@
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   width: 100%;
   resize: vertical;
+  font-family: inherit;
+  min-height: 80px;
 }
 
 .textarea:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(91, 106, 240, 0.12);
+}
+
+.textarea:disabled {
+  background: var(--color-bg);
+  cursor: not-allowed;
 }
 
 .hasError {

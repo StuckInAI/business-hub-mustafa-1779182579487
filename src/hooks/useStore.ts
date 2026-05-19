@@ -1,373 +1,214 @@
 import { useState, useCallback } from 'react';
-import { getItem, setItem } from '@/lib/storage';
-import {
-  SEED_USERS,
-  SEED_JOBS,
-  SEED_CANDIDATES,
-  SEED_APPLICATIONS,
-  SEED_EMAIL_TEMPLATES,
-  SEED_AUTOMATION_RULES,
-  SEED_REQUISITIONS,
-  SEED_REFERRALS,
-} from '@/lib/seedData';
+import { loadFromStorage, saveToStorage } from '@/lib/storage';
+import { seedData } from '@/lib/seedData';
 import type {
-  User,
   Job,
   Candidate,
   Application,
-  EmailTemplate,
-  AutomationRule,
+  Interview,
   Requisition,
   Referral,
+  User,
   UserRole,
 } from '@/types';
 
-function generateId(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-export type Store = {
-  currentUser: User;
-  users: User[];
-  jobs: Job[];
-  candidates: Candidate[];
-  applications: Application[];
-  emailTemplates: EmailTemplate[];
-  automationRules: AutomationRule[];
-  requisitions: Requisition[];
-  referrals: Referral[];
-
-  // Auth
-  setCurrentUser: (user: User) => void;
-
-  // Jobs
-  addJob: (job: Omit<Job, 'id' | 'createdAt'>) => Job;
-  updateJob: (id: string, updates: Partial<Job>) => void;
-  deleteJob: (id: string) => void;
-
-  // Candidates
-  addCandidate: (c: Omit<Candidate, 'id' | 'createdAt' | 'applications'>) => Candidate;
-  updateCandidate: (id: string, updates: Partial<Candidate>) => void;
-  deleteCandidate: (id: string) => void;
-
-  // Applications
-  addApplication: (app: Omit<Application, 'id' | 'appliedAt' | 'updatedAt' | 'notes' | 'interviews' | 'scorecards' | 'emails'>) => Application;
-  updateApplication: (id: string, updates: Partial<Application>) => void;
-  moveApplicationStage: (id: string, stageId: string) => void;
-  deleteApplication: (id: string) => void;
-
-  // Email Templates
-  addEmailTemplate: (t: Omit<EmailTemplate, 'id' | 'createdAt'>) => void;
-  updateEmailTemplate: (id: string, updates: Partial<EmailTemplate>) => void;
-  deleteEmailTemplate: (id: string) => void;
-
-  // Automation
-  addAutomationRule: (r: Omit<AutomationRule, 'id' | 'createdAt'>) => void;
-  updateAutomationRule: (id: string, updates: Partial<AutomationRule>) => void;
-  deleteAutomationRule: (id: string) => void;
-
-  // Requisitions
-  addRequisition: (r: Omit<Requisition, 'id' | 'createdAt'>) => void;
-  updateRequisition: (id: string, updates: Partial<Requisition>) => void;
-
-  // Referrals
-  addReferral: (r: Omit<Referral, 'id' | 'createdAt'>) => void;
-  updateReferral: (id: string, updates: Partial<Referral>) => void;
-
-  // Users
-  addUser: (u: Omit<User, 'id'>) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-  switchRole: (role: UserRole) => void;
+const STORAGE_KEYS = {
+  jobs: 'ats_jobs',
+  candidates: 'ats_candidates',
+  applications: 'ats_applications',
+  interviews: 'ats_interviews',
+  requisitions: 'ats_requisitions',
+  referrals: 'ats_referrals',
+  currentUser: 'ats_current_user',
 };
 
-export function useStore(): Store {
-  const [currentUser, setCurrentUserState] = useState<User>(
-    () => getItem<User>('ats_current_user', SEED_USERS[0])
+function generateId(): string {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function now(): string {
+  return new Date().toISOString();
+}
+
+export function useStore() {
+  const [jobs, setJobs] = useState<Job[]>(() =>
+    loadFromStorage(STORAGE_KEYS.jobs, seedData.jobs)
   );
-  const [users, setUsers] = useState<User[]>(
-    () => getItem<User[]>('ats_users', SEED_USERS)
+  const [candidates, setCandidates] = useState<Candidate[]>(() =>
+    loadFromStorage(STORAGE_KEYS.candidates, seedData.candidates)
   );
-  const [jobs, setJobs] = useState<Job[]>(
-    () => getItem<Job[]>('ats_jobs', SEED_JOBS)
+  const [applications, setApplications] = useState<Application[]>(() =>
+    loadFromStorage(STORAGE_KEYS.applications, seedData.applications)
   );
-  const [candidates, setCandidates] = useState<Candidate[]>(
-    () => getItem<Candidate[]>('ats_candidates', SEED_CANDIDATES)
+  const [interviews, setInterviews] = useState<Interview[]>(() =>
+    loadFromStorage(STORAGE_KEYS.interviews, seedData.interviews)
   );
-  const [applications, setApplications] = useState<Application[]>(
-    () => getItem<Application[]>('ats_applications', SEED_APPLICATIONS)
+  const [requisitions, setRequisitions] = useState<Requisition[]>(() =>
+    loadFromStorage(STORAGE_KEYS.requisitions, seedData.requisitions)
   );
-  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>(
-    () => getItem<EmailTemplate[]>('ats_email_templates', SEED_EMAIL_TEMPLATES)
+  const [referrals, setReferrals] = useState<Referral[]>(() =>
+    loadFromStorage(STORAGE_KEYS.referrals, seedData.referrals)
   );
-  const [automationRules, setAutomationRules] = useState<AutomationRule[]>(
-    () => getItem<AutomationRule[]>('ats_automation_rules', SEED_AUTOMATION_RULES)
-  );
-  const [requisitions, setRequisitions] = useState<Requisition[]>(
-    () => getItem<Requisition[]>('ats_requisitions', SEED_REQUISITIONS)
-  );
-  const [referrals, setReferrals] = useState<Referral[]>(
-    () => getItem<Referral[]>('ats_referrals', SEED_REFERRALS)
+  const [currentUser, setCurrentUser] = useState<User>(() =>
+    loadFromStorage(STORAGE_KEYS.currentUser, seedData.users[0])
   );
 
-  const setCurrentUser = useCallback((user: User) => {
-    setCurrentUserState(user);
-    setItem('ats_current_user', user);
-  }, []);
-
-  const switchRole = useCallback((role: UserRole) => {
-    const roleUser = SEED_USERS.find((u) => u.role === role) || SEED_USERS[0];
-    setCurrentUser(roleUser);
-  }, [setCurrentUser]);
-
-  // Jobs
-  const addJob = useCallback((job: Omit<Job, 'id' | 'createdAt'>): Job => {
-    const newJob: Job = { ...job, id: generateId(), createdAt: new Date().toISOString() };
+  // ---- Jobs ----
+  const addJob = useCallback((job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newJob: Job = { ...job, id: generateId(), createdAt: now(), updatedAt: now() };
     setJobs((prev) => {
-      const next = [...prev, newJob];
-      setItem('ats_jobs', next);
-      return next;
+      const updated = [newJob, ...prev];
+      saveToStorage(STORAGE_KEYS.jobs, updated);
+      return updated;
     });
-    return newJob;
   }, []);
 
   const updateJob = useCallback((id: string, updates: Partial<Job>) => {
     setJobs((prev) => {
-      const next = prev.map((j) => (j.id === id ? { ...j, ...updates } : j));
-      setItem('ats_jobs', next);
-      return next;
+      const updated = prev.map((j) => (j.id === id ? { ...j, ...updates, updatedAt: now() } : j));
+      saveToStorage(STORAGE_KEYS.jobs, updated);
+      return updated;
     });
   }, []);
 
   const deleteJob = useCallback((id: string) => {
     setJobs((prev) => {
-      const next = prev.filter((j) => j.id !== id);
-      setItem('ats_jobs', next);
-      return next;
+      const updated = prev.filter((j) => j.id !== id);
+      saveToStorage(STORAGE_KEYS.jobs, updated);
+      return updated;
     });
   }, []);
 
-  // Candidates
-  const addCandidate = useCallback((c: Omit<Candidate, 'id' | 'createdAt' | 'applications'>): Candidate => {
-    const newC: Candidate = { ...c, id: generateId(), createdAt: new Date().toISOString(), applications: [] };
+  // ---- Candidates ----
+  const addCandidate = useCallback((candidate: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newCandidate: Candidate = { ...candidate, id: generateId(), createdAt: now(), updatedAt: now() };
     setCandidates((prev) => {
-      const next = [...prev, newC];
-      setItem('ats_candidates', next);
-      return next;
+      const updated = [newCandidate, ...prev];
+      saveToStorage(STORAGE_KEYS.candidates, updated);
+      return updated;
     });
-    return newC;
   }, []);
 
   const updateCandidate = useCallback((id: string, updates: Partial<Candidate>) => {
     setCandidates((prev) => {
-      const next = prev.map((c) => (c.id === id ? { ...c, ...updates } : c));
-      setItem('ats_candidates', next);
-      return next;
+      const updated = prev.map((c) => (c.id === id ? { ...c, ...updates, updatedAt: now() } : c));
+      saveToStorage(STORAGE_KEYS.candidates, updated);
+      return updated;
     });
   }, []);
 
-  const deleteCandidate = useCallback((id: string) => {
+  const updateCandidateStatus = useCallback((id: string, status: Candidate['status']) => {
     setCandidates((prev) => {
-      const next = prev.filter((c) => c.id !== id);
-      setItem('ats_candidates', next);
-      return next;
+      const updated = prev.map((c) => (c.id === id ? { ...c, status, updatedAt: now() } : c));
+      saveToStorage(STORAGE_KEYS.candidates, updated);
+      return updated;
     });
   }, []);
 
-  // Applications
-  const addApplication = useCallback(
-    (app: Omit<Application, 'id' | 'appliedAt' | 'updatedAt' | 'notes' | 'interviews' | 'scorecards' | 'emails'>): Application => {
-      const newApp: Application = {
-        ...app,
-        id: generateId(),
-        appliedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        notes: [],
-        interviews: [],
-        scorecards: [],
-        emails: [],
-      };
-      setApplications((prev) => {
-        const next = [...prev, newApp];
-        setItem('ats_applications', next);
-        return next;
-      });
-      return newApp;
-    },
-    []
-  );
-
-  const updateApplication = useCallback((id: string, updates: Partial<Application>) => {
+  // ---- Applications ----
+  const addApplication = useCallback((application: Omit<Application, 'id' | 'appliedAt' | 'updatedAt'>) => {
+    const newApp: Application = { ...application, id: generateId(), appliedAt: now(), updatedAt: now() };
     setApplications((prev) => {
-      const next = prev.map((a) =>
-        a.id === id ? { ...a, ...updates, updatedAt: new Date().toISOString() } : a
-      );
-      setItem('ats_applications', next);
-      return next;
+      const updated = [newApp, ...prev];
+      saveToStorage(STORAGE_KEYS.applications, updated);
+      return updated;
     });
   }, []);
 
-  const moveApplicationStage = useCallback((id: string, stageId: string) => {
+  const updateApplicationStage = useCallback((id: string, stage: Application['stage']) => {
     setApplications((prev) => {
-      const next = prev.map((a) =>
-        a.id === id ? { ...a, stageId, updatedAt: new Date().toISOString() } : a
-      );
-      setItem('ats_applications', next);
-      return next;
+      const updated = prev.map((a) => (a.id === id ? { ...a, stage, updatedAt: now() } : a));
+      saveToStorage(STORAGE_KEYS.applications, updated);
+      return updated;
     });
   }, []);
 
-  const deleteApplication = useCallback((id: string) => {
-    setApplications((prev) => {
-      const next = prev.filter((a) => a.id !== id);
-      setItem('ats_applications', next);
-      return next;
+  // ---- Interviews ----
+  const addInterview = useCallback((interview: Omit<Interview, 'id' | 'createdAt'>) => {
+    const newInterview: Interview = { ...interview, id: generateId(), createdAt: now() };
+    setInterviews((prev) => {
+      const updated = [newInterview, ...prev];
+      saveToStorage(STORAGE_KEYS.interviews, updated);
+      return updated;
     });
   }, []);
 
-  // Email Templates
-  const addEmailTemplate = useCallback((t: Omit<EmailTemplate, 'id' | 'createdAt'>) => {
-    setEmailTemplates((prev) => {
-      const next = [...prev, { ...t, id: generateId(), createdAt: new Date().toISOString() }];
-      setItem('ats_email_templates', next);
-      return next;
+  const updateInterview = useCallback((id: string, updates: Partial<Interview>) => {
+    setInterviews((prev) => {
+      const updated = prev.map((i) => (i.id === id ? { ...i, ...updates } : i));
+      saveToStorage(STORAGE_KEYS.interviews, updated);
+      return updated;
     });
   }, []);
 
-  const updateEmailTemplate = useCallback((id: string, updates: Partial<EmailTemplate>) => {
-    setEmailTemplates((prev) => {
-      const next = prev.map((t) => (t.id === id ? { ...t, ...updates } : t));
-      setItem('ats_email_templates', next);
-      return next;
-    });
-  }, []);
-
-  const deleteEmailTemplate = useCallback((id: string) => {
-    setEmailTemplates((prev) => {
-      const next = prev.filter((t) => t.id !== id);
-      setItem('ats_email_templates', next);
-      return next;
-    });
-  }, []);
-
-  // Automation
-  const addAutomationRule = useCallback((r: Omit<AutomationRule, 'id' | 'createdAt'>) => {
-    setAutomationRules((prev) => {
-      const next = [...prev, { ...r, id: generateId(), createdAt: new Date().toISOString() }];
-      setItem('ats_automation_rules', next);
-      return next;
-    });
-  }, []);
-
-  const updateAutomationRule = useCallback((id: string, updates: Partial<AutomationRule>) => {
-    setAutomationRules((prev) => {
-      const next = prev.map((r) => (r.id === id ? { ...r, ...updates } : r));
-      setItem('ats_automation_rules', next);
-      return next;
-    });
-  }, []);
-
-  const deleteAutomationRule = useCallback((id: string) => {
-    setAutomationRules((prev) => {
-      const next = prev.filter((r) => r.id !== id);
-      setItem('ats_automation_rules', next);
-      return next;
-    });
-  }, []);
-
-  // Requisitions
-  const addRequisition = useCallback((r: Omit<Requisition, 'id' | 'createdAt'>) => {
+  // ---- Requisitions ----
+  const addRequisition = useCallback((req: Omit<Requisition, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newReq: Requisition = { ...req, id: generateId(), createdAt: now(), updatedAt: now() };
     setRequisitions((prev) => {
-      const next = [...prev, { ...r, id: generateId(), createdAt: new Date().toISOString() }];
-      setItem('ats_requisitions', next);
-      return next;
+      const updated = [newReq, ...prev];
+      saveToStorage(STORAGE_KEYS.requisitions, updated);
+      return updated;
     });
   }, []);
 
   const updateRequisition = useCallback((id: string, updates: Partial<Requisition>) => {
     setRequisitions((prev) => {
-      const next = prev.map((r) => (r.id === id ? { ...r, ...updates } : r));
-      setItem('ats_requisitions', next);
-      return next;
+      const updated = prev.map((r) => (r.id === id ? { ...r, ...updates, updatedAt: now() } : r));
+      saveToStorage(STORAGE_KEYS.requisitions, updated);
+      return updated;
     });
   }, []);
 
-  // Referrals
-  const addReferral = useCallback((r: Omit<Referral, 'id' | 'createdAt'>) => {
+  // ---- Referrals ----
+  const addReferral = useCallback((referral: Omit<Referral, 'id' | 'createdAt'>) => {
+    const newReferral: Referral = { ...referral, id: generateId(), createdAt: now() };
     setReferrals((prev) => {
-      const next = [...prev, { ...r, id: generateId(), createdAt: new Date().toISOString() }];
-      setItem('ats_referrals', next);
-      return next;
+      const updated = [newReferral, ...prev];
+      saveToStorage(STORAGE_KEYS.referrals, updated);
+      return updated;
     });
   }, []);
 
-  const updateReferral = useCallback((id: string, updates: Partial<Referral>) => {
-    setReferrals((prev) => {
-      const next = prev.map((r) => (r.id === id ? { ...r, ...updates } : r));
-      setItem('ats_referrals', next);
-      return next;
-    });
-  }, []);
-
-  // Users
-  const addUser = useCallback((u: Omit<User, 'id'>) => {
-    setUsers((prev) => {
-      const next = [...prev, { ...u, id: generateId() }];
-      setItem('ats_users', next);
-      return next;
-    });
-  }, []);
-
-  const updateUser = useCallback((id: string, updates: Partial<User>) => {
-    setUsers((prev) => {
-      const next = prev.map((u) => (u.id === id ? { ...u, ...updates } : u));
-      setItem('ats_users', next);
-      return next;
-    });
-  }, []);
-
-  const deleteUser = useCallback((id: string) => {
-    setUsers((prev) => {
-      const next = prev.filter((u) => u.id !== id);
-      setItem('ats_users', next);
-      return next;
+  // ---- User / Role ----
+  const switchRole = useCallback((role: UserRole) => {
+    setCurrentUser((prev) => {
+      const updated = { ...prev, role };
+      saveToStorage(STORAGE_KEYS.currentUser, updated);
+      return updated;
     });
   }, []);
 
   return {
-    currentUser,
-    users,
+    // state
     jobs,
     candidates,
     applications,
-    emailTemplates,
-    automationRules,
+    interviews,
     requisitions,
     referrals,
-    setCurrentUser,
+    currentUser,
+    // job actions
     addJob,
     updateJob,
     deleteJob,
+    // candidate actions
     addCandidate,
     updateCandidate,
-    deleteCandidate,
+    updateCandidateStatus,
+    // application actions
     addApplication,
-    updateApplication,
-    moveApplicationStage,
-    deleteApplication,
-    addEmailTemplate,
-    updateEmailTemplate,
-    deleteEmailTemplate,
-    addAutomationRule,
-    updateAutomationRule,
-    deleteAutomationRule,
+    updateApplicationStage,
+    // interview actions
+    addInterview,
+    updateInterview,
+    // requisition actions
     addRequisition,
     updateRequisition,
+    // referral actions
     addReferral,
-    updateReferral,
-    addUser,
-    updateUser,
-    deleteUser,
+    // user actions
     switchRole,
   };
 }
+
+export type StoreType = ReturnType<typeof useStore>;

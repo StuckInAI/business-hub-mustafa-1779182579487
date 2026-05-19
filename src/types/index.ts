@@ -5,220 +5,114 @@ export type User = {
   name: string;
   email: string;
   role: UserRole;
-  avatar?: string;
-  department?: string;
+  avatarUrl?: string;
 };
 
-export type JobStatus = 'draft' | 'open' | 'paused' | 'closed' | 'archived';
+export type JobStatus = 'draft' | 'open' | 'on_hold' | 'closed';
 export type JobType = 'full_time' | 'part_time' | 'contract' | 'internship';
-export type WorkMode = 'remote' | 'onsite' | 'hybrid';
 
 export type Job = {
   id: string;
   title: string;
   department: string;
   location: string;
-  workMode: WorkMode;
   type: JobType;
   status: JobStatus;
-  headcount: number;
-  filled: number;
   description: string;
   requirements: string[];
-  salaryMin?: number;
-  salaryMax?: number;
-  currency?: string;
+  salary?: { min: number; max: number; currency: string };
   hiringManagerId: string;
-  recruiterId: string;
   createdAt: string;
-  publishedAt?: string;
-  closedAt?: string;
-  tags: string[];
-  pipeline: PipelineStage[];
+  updatedAt: string;
 };
 
-export type PipelineStage = {
-  id: string;
-  name: string;
-  order: number;
-  color: string;
-};
-
-export type CandidateStatus = 'active' | 'rejected' | 'withdrawn' | 'hired';
+export type CandidateStatus =
+  | 'new'
+  | 'screening'
+  | 'interviewing'
+  | 'offered'
+  | 'hired'
+  | 'rejected';
 
 export type Candidate = {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
-  phone?: string;
-  location?: string;
-  linkedIn?: string;
-  github?: string;
-  website?: string;
-  resumeUrl?: string;
-  source: CandidateSource;
-  referredBy?: string;
-  tags: string[];
+  phone: string;
+  location: string;
+  currentTitle: string;
+  skills: string[];
+  source: 'direct' | 'referral' | 'linkedin' | 'job_board' | 'careers_page';
+  status: CandidateStatus;
+  resumeUrl: string;
+  notes: string;
   createdAt: string;
-  applications: Application[];
+  updatedAt: string;
 };
 
-export type CandidateSource =
-  | 'careers_page'
-  | 'linkedin'
-  | 'referral'
-  | 'agency'
-  | 'github'
-  | 'job_board'
-  | 'sourced'
-  | 'other';
+export type ApplicationStage =
+  | 'applied'
+  | 'screening'
+  | 'technical_interview'
+  | 'final_interview'
+  | 'offer'
+  | 'hired'
+  | 'rejected';
 
 export type Application = {
   id: string;
-  candidateId: string;
   jobId: string;
-  stageId: string;
-  status: CandidateStatus;
+  candidateId: string;
+  stage: ApplicationStage;
   appliedAt: string;
   updatedAt: string;
-  rating?: number;
-  notes: Note[];
-  interviews: Interview[];
-  scorecards: Scorecard[];
-  emails: EmailThread[];
-  disqualifyReason?: string;
+  notes: string;
+  rating?: number | null;
 };
 
-export type Note = {
-  id: string;
-  authorId: string;
-  content: string;
-  createdAt: string;
-  isPinned: boolean;
-};
-
-export type InterviewType = 'phone' | 'video' | 'onsite' | 'technical' | 'panel';
-export type InterviewStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+export type InterviewType =
+  | 'phone_screen'
+  | 'technical'
+  | 'behavioral'
+  | 'panel'
+  | 'final';
 
 export type Interview = {
   id: string;
   applicationId: string;
   type: InterviewType;
-  status: InterviewStatus;
   scheduledAt: string;
-  durationMinutes: number;
-  interviewerIds: string[];
-  location?: string;
-  meetingLink?: string;
-  notes?: string;
-  feedback?: string;
-};
-
-export type Scorecard = {
-  id: string;
-  applicationId: string;
-  interviewerId: string;
-  overallRating: number;
-  attributes: ScorecardAttribute[];
-  recommendation: 'strong_yes' | 'yes' | 'neutral' | 'no' | 'strong_no';
-  submittedAt: string;
+  duration: number;
+  interviewers: string[];
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
   notes: string;
-};
-
-export type ScorecardAttribute = {
-  name: string;
-  rating: number;
-  comment?: string;
-};
-
-export type EmailThread = {
-  id: string;
-  subject: string;
-  messages: EmailMessage[];
-  lastActivityAt: string;
-};
-
-export type EmailMessage = {
-  id: string;
-  from: string;
-  to: string[];
-  subject: string;
-  body: string;
-  sentAt: string;
-  direction: 'outbound' | 'inbound';
-};
-
-export type EmailTemplate = {
-  id: string;
-  name: string;
-  subject: string;
-  body: string;
-  category: 'application' | 'interview' | 'offer' | 'rejection' | 'general';
-  createdAt: string;
-};
-
-export type AutomationTrigger =
-  | 'stage_change'
-  | 'application_created'
-  | 'interview_scheduled'
-  | 'scorecard_submitted';
-
-export type AutomationAction =
-  | 'send_email'
-  | 'move_stage'
-  | 'add_tag'
-  | 'assign_interviewer'
-  | 'send_notification';
-
-export type AutomationRule = {
-  id: string;
-  name: string;
-  isActive: boolean;
-  trigger: AutomationTrigger;
-  triggerCondition?: string;
-  action: AutomationAction;
-  actionConfig: Record<string, string>;
+  feedback: string;
+  rating: number | null;
   createdAt: string;
 };
 
 export type Requisition = {
   id: string;
-  jobTitle: string;
+  title: string;
   department: string;
   headcount: number;
+  priority: 'low' | 'medium' | 'high';
+  status: 'pending' | 'approved' | 'rejected' | 'on_hold';
   justification: string;
   requestedBy: string;
-  approvers: RequisitionApprover[];
-  status: 'pending' | 'approved' | 'rejected';
+  approvedBy: string | null;
   createdAt: string;
-  jobId?: string;
-};
-
-export type RequisitionApprover = {
-  userId: string;
-  status: 'pending' | 'approved' | 'rejected';
-  comment?: string;
-  reviewedAt?: string;
+  updatedAt: string;
 };
 
 export type Referral = {
   id: string;
   referrerId: string;
-  candidateId: string;
-  jobId: string;
-  status: 'pending' | 'hired' | 'rejected';
-  bonus?: number;
+  candidateName: string;
+  candidateEmail: string;
+  jobId: string | null;
+  status: 'pending' | 'reviewing' | 'hired' | 'rejected';
+  notes: string;
+  bonus: number | null;
   createdAt: string;
-};
-
-export type DashboardStats = {
-  openJobs: number;
-  totalCandidates: number;
-  activeApplications: number;
-  interviewsThisWeek: number;
-  offersExtended: number;
-  timeToFill: number;
-  offerAcceptRate: number;
-  sourcingBreakdown: { source: string; count: number }[];
 };

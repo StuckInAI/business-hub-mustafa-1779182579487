@@ -1,10 +1,10 @@
 import { createContext, useContext } from 'react';
-import type { Store } from '@/hooks/useStore';
+import type { StoreType } from '@/hooks/useStore';
 
-export const StoreContext = createContext<Store | null>(null);
+export const StoreContext = createContext<StoreType | null>(null);
 
-export function useStoreContext(): Store {
+export function useStoreContext(): StoreType {
   const ctx = useContext(StoreContext);
-  if (!ctx) throw new Error('useStoreContext must be used within StoreProvider');
+  if (!ctx) throw new Error('useStoreContext must be used within StoreContext.Provider');
   return ctx;
 }
