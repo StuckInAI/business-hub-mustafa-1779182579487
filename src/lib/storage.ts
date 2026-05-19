@@ -1,19 +1,22 @@
-const STORAGE_KEY = 'ats_app_state';
+const STORAGE_KEY = 'ats_app_data';
 
-export function loadState<T>(defaultValue: T): T {
+export function loadData<T>(key: string, fallback: T): T {
   try {
-    const serialized = localStorage.getItem(STORAGE_KEY);
-    if (!serialized) return defaultValue;
-    return JSON.parse(serialized) as T;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return (parsed[key] !== undefined ? parsed[key] : fallback) as T;
   } catch {
-    return defaultValue;
+    return fallback;
   }
 }
 
-export function saveState<T>(state: T): void {
+export function saveData<T>(key: string, value: T): void {
   try {
-    const serialized = JSON.stringify(state);
-    localStorage.setItem(STORAGE_KEY, serialized);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    parsed[key] = value;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
   } catch {
     // ignore
   }

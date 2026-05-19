@@ -5,17 +5,11 @@ export type User = {
   name: string;
   email: string;
   role: UserRole;
-  department?: string;
+  avatar?: string;
 };
 
 export type JobStatus = 'draft' | 'open' | 'paused' | 'closed';
 export type JobType = 'full_time' | 'part_time' | 'contract' | 'internship';
-
-export type Salary = {
-  min: number;
-  max: number;
-  currency: string;
-};
 
 export type Job = {
   id: string;
@@ -26,12 +20,12 @@ export type Job = {
   status: JobStatus;
   description: string;
   requirements: string[];
-  salary?: Salary;
-  closingDate?: string;
+  salaryMin?: number;
+  salaryMax?: number;
   createdAt: string;
   updatedAt: string;
   hiringManagerId: string;
-  requisitionId?: string;
+  applicationCount?: number;
 };
 
 export type CandidateStatus =
@@ -45,12 +39,15 @@ export type CandidateStatus =
 export type Candidate = {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
   location?: string;
   currentTitle?: string;
   currentCompany?: string;
   linkedIn?: string;
+  portfolio?: string;
   resumeUrl?: string;
   skills: string[];
   status: CandidateStatus;
@@ -79,15 +76,15 @@ export type Application = {
   stage?: string;
 };
 
-export type InterviewType = 'phone' | 'video' | 'onsite' | 'technical' | 'hr';
+export type InterviewType = 'phone' | 'video' | 'onsite' | 'technical' | 'panel';
 export type InterviewStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
 
 export type Interview = {
   id: string;
   applicationId: string;
-  jobId: string;
   candidateId: string;
-  interviewerId?: string;
+  jobId: string;
+  interviewerIds: string[];
   type: InterviewType;
   status: InterviewStatus;
   scheduledAt: string;
@@ -100,24 +97,20 @@ export type Interview = {
 };
 
 export type RequisitionStatus = 'pending' | 'approved' | 'rejected' | 'open' | 'closed';
-export type RequisitionPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export type Requisition = {
   id: string;
   title: string;
   department: string;
   headcount: number;
-  priority: RequisitionPriority;
   status: RequisitionStatus;
-  justification: string;
   requestedBy: string;
   approvedBy?: string;
+  jobId?: string;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
-  jobId?: string;
 };
-
-export type ReferralStatus = 'pending' | 'reviewing' | 'hired' | 'rejected';
 
 export type Referral = {
   id: string;
@@ -126,8 +119,35 @@ export type Referral = {
   candidateName: string;
   candidateEmail: string;
   jobId: string;
-  status: ReferralStatus;
+  status: 'pending' | 'reviewed' | 'hired' | 'rejected';
+  bonus?: number;
   notes?: string;
   createdAt: string;
-  updatedAt: string;
+};
+
+export type StoreType = {
+  jobs: Job[];
+  candidates: Candidate[];
+  applications: Application[];
+  interviews: Interview[];
+  requisitions: Requisition[];
+  referrals: Referral[];
+  currentUser: User;
+  addJob: (job: Job) => void;
+  updateJob: (job: Job) => void;
+  deleteJob: (id: string) => void;
+  addCandidate: (candidate: Candidate) => void;
+  updateCandidate: (candidate: Candidate) => void;
+  deleteCandidate: (id: string) => void;
+  updateCandidateStatus: (id: string, status: CandidateStatus) => void;
+  addApplication: (application: Application) => void;
+  updateApplication: (application: Application) => void;
+  addInterview: (interview: Interview) => void;
+  updateInterview: (interview: Interview) => void;
+  deleteInterview: (id: string) => void;
+  addRequisition: (requisition: Requisition) => void;
+  updateRequisition: (requisition: Requisition) => void;
+  addReferral: (referral: Referral) => void;
+  updateReferral: (referral: Referral) => void;
+  switchRole: (role: UserRole) => void;
 };

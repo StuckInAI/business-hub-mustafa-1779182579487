@@ -1,131 +1,101 @@
 .page {
-  padding: var(--space-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
+  padding: var(--space-6) var(--space-8);
 }
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 .section {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  overflow: hidden;
+  margin-bottom: var(--space-6);
 }
 
-.sectionHeader {
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-size-md);
+.sectionTitle {
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
 }
 
-.list {
-  display: flex;
-  flex-direction: column;
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.cardTitle {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
 }
 
 .listItem {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-5);
+  justify-content: space-between;
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--color-border-light);
-  text-decoration: none;
-  transition: background var(--transition-fast);
+  gap: var(--space-3);
 }
 
 .listItem:last-child {
   border-bottom: none;
 }
 
-.listItem:hover {
-  background: var(--color-bg);
-}
-
-.itemIcon {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.itemContent {
-  flex: 1;
-  min-width: 0;
-}
-
-.itemTitle {
+.listItemTitle {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.itemMeta {
+.listItemSub {
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin-top: 2px;
-}
-
-.twoCol {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
 }
 
 .pipelineBar {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-5);
-}
-
-.pipelineRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.pipelineLabel {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  width: 90px;
-  flex-shrink: 0;
-}
-
-.pipelineTrack {
-  flex: 1;
-  height: 8px;
-  background: var(--color-border-light);
+  height: 10px;
   border-radius: var(--radius-full);
   overflow: hidden;
+  margin-bottom: var(--space-4);
 }
 
-.pipelineFill {
-  height: 100%;
+.pipelineLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
   border-radius: var(--radius-full);
-  background: var(--color-primary);
-  transition: width 0.4s ease;
 }
 
-.pipelineCount {
+.emptyText {
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  width: 24px;
-  text-align: right;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-5) 0;
 }
